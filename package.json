@@ -1,0 +1,19 @@
+{
+	"name": "spook",
+	"version": "1.0.0",
+	"description": "Compiler written in Javascript that controls a robot.",
+	"main": "spook.js",
+	"scripts": {
+		"test": "jison spook.jison && node spook.js test2.ca"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/sanchezand/Spook.git"
+	},
+	"author": "",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/sanchezand/Spook/issues"
+	},
+	"homepage": "https://github.com/sanchezand/Spook#readme"
+}

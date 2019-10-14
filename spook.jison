@@ -57,7 +57,9 @@
 %% /* language grammar */
 
 start:
-	statements EOF
+	statements EOF {
+		
+	}
 	;
 
 statements:
@@ -66,8 +68,9 @@ statements:
 
 assign:
 	NAME ASSIGN expression {
-		// console.log($1) // name of the var
-		// console.log($3) // value of the val
+		console.log('ASSIGN')
+		console.log($1);
+		console.log($3);
 	}
 	| NAME [ expression ] ASSIGN expression {
 		
@@ -75,42 +78,88 @@ assign:
 	;
 
 expression:
-	exp
-	| exp compOp exp
+	exp {
+		$$ = $1;
+		console.log($1)
+	}
+	| exp compOp exp{
+		switch($2){
+			case '>': return $$ = $1 > $3;
+			case '<': return $$ = $1 < $3;
+			case '==': return $$ = $1 == $3;
+			case 'NOT': return $$ = $1 != $3;
+		}
+	}
 	;
 
 exp:
-	termino
-	| termino addSub exp
+	termino {
+		$$ = $1
+	}
+	| termino addSub exp {
+		switch($2){
+			case '+': return $$ = $1 + $3;
+			case '-': return $$ = $1 - $3;
+		}
+	}
 	;
 
 termino:
-	factor
-	| factor multDiv termino
+	factor {
+		$$ = $1
+	}
+	| factor multDiv termino{
+		switch($2){
+			case '*': return $$ = $1 * $3;
+			case '/': return $$ = $1 / $3;
+		}
+	}
 	;
 
 factor:
 	'(' expression ')'
-	| addSub val
-	| val
+	| addSub val {
+		console.log($1, $2)
+	}
+	| val {
+		$$ = $1
+	}
 	;
 
+fcargs2:
+	|	
+	',' expression fcargs2;
+
+fcargs1:
+	|
+	expression fcargs2;
+
+fcargs:
+	'(' fcargs1 ')'
+	;
+
+functioncall:
+	NAME fcargs;
+
+
+
+
+
 val:
-	NUMBER
-	| BOOLEAN
-	| NAME
+	NUMBER {
+		$$ = parseFloat($1)
+	}
+	| BOOLEAN {
+		$$ = $1 === 'true'
+	}
+	| NAME {
+		// CHECK VARS TABLE TO GET VALUE
+	}
 	;
 
 idlist:
 	NAME
 	| NAME ',' idlist;
-
-fcargs:
-	'(' ')'
-	;
-
-functioncall:
-	NAME fcargs;
 
 vars:
 	DEF idlist ':' type {
@@ -172,7 +221,9 @@ loop:
 
 statement:
 	vars
-	| assign
+	| assign {
+		
+	}
 	| conditional
 	| functioncall
 	| actions
