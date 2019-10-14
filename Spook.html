@@ -1,0 +1,82 @@
+<html>
+	<head>
+		<title>Spook</title>
+		<script src="spook.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.6/ace.js" integrity="sha256-CVkji/u32aj2TeC+D13f7scFSIfphw2pmu4LaKWMSY8=" crossorigin="anonymous"></script>
+	</head>
+
+	<style>
+		.body{
+			max-width: 800px;
+			margin: auto;
+			width: 100%;
+		}
+		.body button{
+			height: 40px;
+		}
+		.body .valid{
+			background-color: #4CAF50;
+			padding: 20px;
+			text-align: center;
+		}
+		.body .invalid{
+			background-color: #c41f1f;
+			padding: 20px;
+			text-align: center;
+		}
+		#editor { 
+			width: 100%;
+			height: 400px;
+		}
+	</style>
+	<body>
+		<div class="body">
+			<div id="editor">def test : decimal 
+test = 2 
+fun testFunction() 
+	test = 3 + test 
+	repeat test do 
+		moveRight() 
+	end 
+end 
+if test>4 then 
+	putDown() 
+	forward() 
+else 
+	moveRight() 
+	forward() 
+	pickUp() 
+end 
+testFunction()</div>
+			<br>
+			<div class="valid" id="valid">
+				VALID
+			</div>
+			<div class="invalid" id="invalid">
+				INVALID
+			</div>
+			<button onclick="parseLanguage()" style="width: 100%">
+				Parse
+			</button>
+		</div>
+	</body>
+	<script>
+		var editor = ace.edit("editor");
+		editor.setTheme("ace/theme/monokai");
+
+		document.getElementById("valid").style.display  = "none"; 
+		document.getElementById("invalid").style.display  = "none"; 
+		function parseLanguage(){
+			var code = editor.getValue();
+			document.getElementById("valid").style.display  = "none"; 
+			document.getElementById("invalid").style.display  = "none"; 
+			try{
+				spook.parse(code);
+				document.getElementById("valid").style.display  = "block"; 
+			}catch(e){
+				console.log(e)
+				document.getElementById("invalid").style.display  = "block"; 
+			}
+		}
+	</script>
+</html>

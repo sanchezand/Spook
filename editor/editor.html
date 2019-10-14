@@ -1,0 +1,21 @@
+<html>
+	<head>
+		<script src="js/editor.js"></script>
+	</head>
+	<style>
+		.sp.canvas{
+			width: 854px;
+			height: 480px;
+			border: 1px solid black;
+		}
+	</style>
+	<body>
+		<canvas class="sp canvas" width="854" height="480p" id="canvas">
+
+		</canvas>
+	</body>
+	<script>
+		var editor = new Editor(document.getElementById("canvas"));
+		editor.start();
+	</script>
+</html>
