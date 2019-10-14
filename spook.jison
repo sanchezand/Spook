@@ -68,26 +68,27 @@ statements:
 
 assign:
 	NAME ASSIGN expression {
-		console.log('ASSIGN')
-		console.log($1);
-		console.log($3);
+		console.log('Assign:', $1, '=', $3);
 	}
-	| NAME [ expression ] ASSIGN expression {
-		
+	| NAME '[' expression ']' ASSIGN expression {
+		console.log('Assign:', $1+'['+$3+']', '=', $6);
 	}
 	;
 
 expression:
 	exp {
 		$$ = $1;
-		console.log($1)
 	}
 	| exp compOp exp{
-		switch($2){
-			case '>': return $$ = $1 > $3;
-			case '<': return $$ = $1 < $3;
-			case '==': return $$ = $1 == $3;
-			case 'NOT': return $$ = $1 != $3;
+		$$ = $2=='*' ? $1*$3 : $1/$3;
+		if($2=='>'){
+			$$ = $1 > $3;
+		}else if($2=='<'){
+			$$ = $1 < $3;
+		}else if($2=='=='){
+			$$ = $1 == $3;
+		}else if($3=='!='){
+			$$ = $1 != $3;
 		}
 	}
 	;
@@ -97,10 +98,7 @@ exp:
 		$$ = $1
 	}
 	| termino addSub exp {
-		switch($2){
-			case '+': return $$ = $1 + $3;
-			case '-': return $$ = $1 - $3;
-		}
+		$$ = $2=='+' ? $1+$3 : $1-$3;
 	}
 	;
 
@@ -109,41 +107,50 @@ termino:
 		$$ = $1
 	}
 	| factor multDiv termino{
-		switch($2){
-			case '*': return $$ = $1 * $3;
-			case '/': return $$ = $1 / $3;
-		}
+		$$ = $2=='*' ? $1*$3 : $1/$3;
 	}
 	;
 
 factor:
-	'(' expression ')'
+	'(' expression ')' {
+		$$ = $2;
+	}
 	| addSub val {
-		console.log($1, $2)
+		$$ = parseFloat($2) * ($1=='-' ? -1 : 1);
 	}
 	| val {
 		$$ = $1
 	}
 	;
 
-fcargs2:
-	|	
-	',' expression fcargs2;
+expressionlist2:
+	{
+		$$ = []
+	}
+	| ',' expression expressionlist2 {
+		$$ = [ $2, ...$3 ]
+	};
 
-fcargs1:
-	|
-	expression fcargs2;
+expressionlist:
+	{ // Empty expression list
+		$$ = []
+	}
+	| expression expressionlist2 {
+		$$ = [$1, ...$2]
+	};
 
-fcargs:
-	'(' fcargs1 ')'
+id:
+	NAME {
+		// Get val from var table.
+	}
+	| NAME '[' expression ']' {
+		//Get val array in var table 
+	}
+	| NAME '(' expressionlist ')' {
+		// Calc val from function call
+		console.log("FuncCall:", $1, $3)
+	}
 	;
-
-functioncall:
-	NAME fcargs;
-
-
-
-
 
 val:
 	NUMBER {
@@ -152,25 +159,33 @@ val:
 	| BOOLEAN {
 		$$ = $1 === 'true'
 	}
-	| NAME {
-		// CHECK VARS TABLE TO GET VALUE
-	}
+	| id
 	;
 
 idlist:
-	NAME
-	| NAME ',' idlist;
+	NAME {
+		$$ = [$1]
+	}
+	| NAME ',' idlist{
+		$$ = [$1, ...$3]
+	};
 
 vars:
 	DEF idlist ':' type {
-
+		console.log("Defined:", $2, $4)
 	}
-	| DEF idlist ':' type [ NUMBER ]
+	| DEF idlist ':' type '[' NUMBER ']' {
+		console.log("Defined:", $2, $4, '['+$6+']')
+	}
 	;
 
 conditional:
-	IF expression THEN statements END
-	| IF expression THEN statements ELSE statements END
+	IF expression THEN statements END {
+
+	}
+	| IF expression THEN statements ELSE statements END {
+
+	}
 	;
 
 actions:
@@ -221,9 +236,7 @@ loop:
 
 statement:
 	vars
-	| assign {
-		
-	}
+	| assign
 	| conditional
 	| functioncall
 	| actions
