@@ -1,5 +1,74 @@
 /* description: Parses end executes mathematical expressions. */
 
+%{
+	var GLOBAL_TABLE = [];
+	var SCOPE_TABLE = [];
+	
+	var scope = -1;
+
+	function addVar(name, type, array_size=false){
+		var val = {
+			name,
+			type,
+			val: type=='bool' ? false : -1
+		}
+		if(array_size){
+			val.size = array_size;
+			val.val = Array(array_size).fill(type=='bool' ? false : -1)
+		}
+		if(scope<=-1){
+			if(GLOBAL_TABLE.find(a=>a.name==name)) return false;
+			GLOBAL_TABLE.push(val);
+		}
+		else{
+			if(SCOPE_TABLE[scope].find(a=>a.name==name)) return false;
+			SCOPE_TABLE[scope].push(val);
+		}
+		return true;
+	}
+
+	function getValFromType(val, type){
+		if(type=='bool'){
+			return val > 0;
+		}else{
+			return parseFloat(val);
+		}
+	}
+
+	function setVar(name, val, pos=false){
+		if(scope<=-1){
+			var ix = GLOBAL_TABLE.findIndex(a=>a.name==name);
+			if(ix==-1) return false;
+			if(GLOBAL_TABLE[ix].size && pos===false) return false;
+			if(pos!==false){
+				if(pos>GLOBAL_TABLE[ix].size-1) return false;
+				GLOBAL_TABLE[ix].val[pos] = getValFromType(val, GLOBAL_TABLE[ix].type);
+			}else{
+				GLOBAL_TABLE[ix].val = getValFromType(val, GLOBAL_TABLE[ix].type);
+			}
+		}else{
+			var ix = SCOPE_TABLE[scope].findIndex(a=>a.name==name);
+			if(ix==-1) return false;
+			if(SCOPE_TABLE[scope][ix].size && !pos) return false;
+			if(pos!==false){
+				if(pos>SCOPE_TABLE[scope][ix].size-1) return false;
+				SCOPE_TABLE[scope][ix].val[pos] = getValFromType(val, SCOPE_TABLE[scope][ix].type);
+			}else{
+				SCOPE_TABLE[scope][ix].val = getValFromType(val, SCOPE_TABLE[scope][ix].type);
+			}
+		}
+	}
+
+	function getVar(name){
+		if(scope<=-1){
+			return GLOBAL_TABLE.find(a=>a.name==name);
+		}else{
+			return SCOPE_TABLE[scope].find(a=>a.name==name);
+		}
+	}
+%}
+
+
 /* lexical grammar */
 %lex
 %%
@@ -58,7 +127,8 @@
 
 start:
 	statements EOF {
-		
+		console.log("Global:", GLOBAL_TABLE);
+		console.log("Scope:", SCOPE_TABLE);
 	}
 	;
 
@@ -66,12 +136,31 @@ statements:
 	| statements statement
 	;
 
+vars:
+	DEF idlist ':' type {
+		console.log("Defined:", $2, $4)
+		for(var i of $2){
+			addVar(i, $4);
+			if(!added) throw new Error('Error adding var '+i);
+		}
+	}
+	| DEF idlist ':' type '[' NUMBER ']' {
+		console.log("Defined:", $2, $4, '['+$6+']')
+		for(var i of $2){
+			var added = addVar(i, $4, parseInt($6))
+			if(!added) throw new Error('Error adding var '+i);
+		}
+	}
+	;
+
 assign:
 	NAME ASSIGN expression {
 		console.log('Assign:', $1, '=', $3);
+		setVar($1, $3);
 	}
 	| NAME '[' expression ']' ASSIGN expression {
 		console.log('Assign:', $1+'['+$3+']', '=', $6);
+		setVar($1, $6, $3);
 	}
 	;
 
@@ -141,10 +230,17 @@ expressionlist:
 
 id:
 	NAME {
-		// Get val from var table.
+		$$ = getVar($1).val;
 	}
 	| NAME '[' expression ']' {
 		//Get val array in var table 
+		var val = getVar($1);
+		var pos = parseInt($3);
+		if(!val.size || pos>val.size-1){
+			// THROW ERROR
+			throw new Error('Index out of bounds');
+		}
+		$$ = val.val[pos];
 	}
 	| NAME '(' expressionlist ')' {
 		// Calc val from function call
@@ -169,15 +265,6 @@ idlist:
 	| NAME ',' idlist{
 		$$ = [$1, ...$3]
 	};
-
-vars:
-	DEF idlist ':' type {
-		console.log("Defined:", $2, $4)
-	}
-	| DEF idlist ':' type '[' NUMBER ']' {
-		console.log("Defined:", $2, $4, '['+$6+']')
-	}
-	;
 
 conditional:
 	IF expression THEN statements END {
