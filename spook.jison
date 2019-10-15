@@ -140,7 +140,7 @@ vars:
 	DEF idlist ':' type {
 		console.log("Defined:", $2, $4)
 		for(var i of $2){
-			addVar(i, $4);
+			var added = addVar(i, $4);
 			if(!added) throw new Error('Error adding var '+i);
 		}
 	}
@@ -268,7 +268,7 @@ idlist:
 
 conditional:
 	IF expression THEN statements END {
-
+		
 	}
 	| IF expression THEN statements ELSE statements END {
 
@@ -325,7 +325,6 @@ statement:
 	vars
 	| assign
 	| conditional
-	| functioncall
 	| actions
 	| function
 	| loop
