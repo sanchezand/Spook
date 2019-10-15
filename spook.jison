@@ -111,10 +111,10 @@
 ">"								return 'GTRTHN'
 "<"								return 'LESTHN'
 "NOT"								return 'NOT'
-"fun"								return 'FUNCTION'
+"fun"								{ addScope(); return 'FUNCTION' }
 "return"							return 'RETURN'
 "repeat"							return 'REPEAT'
-"do"								return 'DO'
+"do"								{ addScope(); return 'DO' }
 "OUT"								return 'OUT'
 "forward"						return 'FORWARD'
 "rotateRight"					return 'ROTRIGHT'
