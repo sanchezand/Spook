@@ -63,8 +63,21 @@
 		if(scope<=-1){
 			return GLOBAL_TABLE.find(a=>a.name==name);
 		}else{
-			return SCOPE_TABLE[scope].find(a=>a.name==name);
+			var scope_var = SCOPE_TABLE[scope].find(a=>a.name==name);
+			if(!scope_var){
+				return GLOBAL_TABLE.find(a=>a.name==name);
+			} else return scope_var;
 		}
+	}
+
+	function addScope(){
+		SCOPE_TABLE.push([])
+		scope = SCOPE_TABLE.length-1;
+	}
+
+	function exitScope(){
+		SCOPE_TABLE.pop();
+		scope = SCOPE_TABLE.length-1;
 	}
 %}
 
@@ -91,8 +104,8 @@
 "decimal"						return 'DECIMAL'
 "bool"						 	return 'BOOL'
 "if"								return 'IF'
-"then"							return 'THEN'
-"end"								return 'END'
+"then"							{ addScope(); return 'THEN' }
+"end"								{ exitScope(); return 'END' }
 "else"							return 'ELSE'
 "=="								return 'EQUALS'
 ">"								return 'GTRTHN'
@@ -138,14 +151,14 @@ statements:
 
 vars:
 	DEF idlist ':' type {
-		console.log("Defined:", $2, $4)
+		// console.log("Defined:", $2, $4)
 		for(var i of $2){
 			var added = addVar(i, $4);
 			if(!added) throw new Error('Error adding var '+i);
 		}
 	}
 	| DEF idlist ':' type '[' NUMBER ']' {
-		console.log("Defined:", $2, $4, '['+$6+']')
+		// console.log("Defined:", $2, $4, '['+$6+']')
 		for(var i of $2){
 			var added = addVar(i, $4, parseInt($6))
 			if(!added) throw new Error('Error adding var '+i);
@@ -155,11 +168,11 @@ vars:
 
 assign:
 	NAME ASSIGN expression {
-		console.log('Assign:', $1, '=', $3);
+		// console.log('Assign:', $1, '=', $3);
 		setVar($1, $3);
 	}
 	| NAME '[' expression ']' ASSIGN expression {
-		console.log('Assign:', $1+'['+$3+']', '=', $6);
+		// console.log('Assign:', $1+'['+$3+']', '=', $6);
 		setVar($1, $6, $3);
 	}
 	;
@@ -296,6 +309,9 @@ actions:
 	}
 	| INVENTORY '(' ')'{
 		$$ = yy.inventory
+	}
+	| OUT '(' expression ')'{
+		console.log($3)
 	}
 	;
 

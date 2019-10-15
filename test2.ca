@@ -2,3 +2,10 @@ def lmao : decimal[3]
 lmao[0] = 32131
 lmao[2] = lmao[0]
 lmao[0] = lmao[0]-32130
+
+if lmao[0]>2 then
+	def test : decimal
+	test = 32+91 * (203*0.30)
+	OUT(test)
+	OUT(lmao)
+end
