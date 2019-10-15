@@ -1,11 +1,9 @@
-def lmao : decimal[3]
-lmao[0] = 32131
-lmao[2] = lmao[0]
-lmao[0] = lmao[0]-32130
+def test : decimal[3]
+test[0] = 32131
+test[2] = test[0]
+test[1] = test[0]-32130
 
-if lmao[0]>2 then
-	def test : decimal
-	test = 32+91 * (203*0.30)
-	OUT(test)
-	OUT(lmao)
-end
+def A,B,C : decimal
+B = 30
+A = 21
+C = A+B*(test[1] - test[0])

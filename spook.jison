@@ -142,37 +142,39 @@ start:
 	statements EOF {
 		console.log("Global:", GLOBAL_TABLE);
 		console.log("Scope:", SCOPE_TABLE);
+		return GLOBAL_TABLE
 	}
 	;
 
 statements:
+	// EMPTY
 	| statements statement
 	;
 
 vars:
 	DEF idlist ':' type {
-		// console.log("Defined:", $2, $4)
 		for(var i of $2){
 			var added = addVar(i, $4);
-			if(!added) throw new Error('Error adding var '+i);
+			if(!added) {
+				// THROW ERROR
+			}
 		}
 	}
 	| DEF idlist ':' type '[' NUMBER ']' {
-		// console.log("Defined:", $2, $4, '['+$6+']')
 		for(var i of $2){
 			var added = addVar(i, $4, parseInt($6))
-			if(!added) throw new Error('Error adding var '+i);
+			if(!added){
+				// THROW ERROR
+			}
 		}
 	}
 	;
 
 assign:
 	NAME ASSIGN expression {
-		// console.log('Assign:', $1, '=', $3);
 		setVar($1, $3);
 	}
 	| NAME '[' expression ']' ASSIGN expression {
-		// console.log('Assign:', $1+'['+$3+']', '=', $6);
 		setVar($1, $6, $3);
 	}
 	;
@@ -249,9 +251,8 @@ id:
 		//Get val array in var table 
 		var val = getVar($1);
 		var pos = parseInt($3);
-		if(!val.size || pos>val.size-1){
+		if(!val || !val.size || pos>val.size-1){
 			// THROW ERROR
-			throw new Error('Index out of bounds');
 		}
 		$$ = val.val[pos];
 	}
@@ -344,6 +345,7 @@ statement:
 	| actions
 	| function
 	| loop
+	| id
 	;
 
 type:

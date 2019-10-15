@@ -31,30 +31,17 @@
 	</style>
 	<body>
 		<div class="body">
-			<div id="editor">def test : decimal 
-test = 2 
-fun testFunction() 
-	test = 3 + test 
-	repeat test do 
-		moveRight() 
-	end 
-end 
-if test>4 then 
-	putDown() 
-	forward() 
-else 
-	moveRight() 
-	forward() 
-	pickUp() 
-end 
-testFunction()</div>
+			<div id="editor">def test : decimal[3]
+test[0] = 32
+test[2] = test[0]
+test[1] = test[0]-20
+
+def A,B,C : decimal
+B = 30
+A = 21
+C = A+B-(test[1] - test[0])</div>
 			<br>
-			<div class="valid" id="valid">
-				VALID
-			</div>
-			<div class="invalid" id="invalid">
-				INVALID
-			</div>
+			<pre id="result"></pre>
 			<button onclick="parseLanguage()" style="width: 100%">
 				Parse
 			</button>
@@ -64,18 +51,15 @@ testFunction()</div>
 		var editor = ace.edit("editor");
 		editor.setTheme("ace/theme/monokai");
 
-		document.getElementById("valid").style.display  = "none"; 
-		document.getElementById("invalid").style.display  = "none"; 
 		function parseLanguage(){
 			var code = editor.getValue();
-			document.getElementById("valid").style.display  = "none"; 
-			document.getElementById("invalid").style.display  = "none"; 
 			try{
-				spook.parse(code);
-				document.getElementById("valid").style.display  = "block"; 
+				var res = spook.parse(code);
+				console.log(res);
+				document.getElementById('result').innerText = 'Variables Globales: \n' + JSON.stringify(res, null, 4);
 			}catch(e){
+				document.getElementById('result').innerText = 'Código invalido';
 				console.log(e)
-				document.getElementById("invalid").style.display  = "block"; 
 			}
 		}
 	</script>
