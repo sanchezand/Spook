@@ -1,9 +1,4 @@
-def test : decimal[3]
-test[0] = 32131
-test[2] = test[0]
-test[1] = test[0]-32130
+fun lmao(test : decimal)
+	
+end
 
-def A,B,C : decimal
-B = 30
-A = 21
-C = A+B*(test[1] - test[0])

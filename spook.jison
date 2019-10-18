@@ -4,12 +4,14 @@
 	var GLOBAL_TABLE = [];
 	var SCOPE_TABLE = [];
 	
+	var func = false;
 	var scope = -1;
 
 	function addVar(name, type, array_size=false){
 		var val = {
 			name,
 			type,
+			scope,
 			val: type=='bool' ? false : -1
 		}
 		if(array_size){
@@ -79,6 +81,14 @@
 		SCOPE_TABLE.pop();
 		scope = SCOPE_TABLE.length-1;
 	}
+
+	function startFunction(){
+		func = [];
+	}
+
+	function endFunction(){
+
+	}
 %}
 
 
@@ -111,11 +121,11 @@
 ">"								return 'GTRTHN'
 "<"								return 'LESTHN'
 "NOT"								return 'NOT'
-"fun"								{ addScope(); return 'FUNCTION' }
+"fun"								{ addScope(); startFunction(); return 'FUNCTION' }
 "return"							return 'RETURN'
 "repeat"							return 'REPEAT'
 "do"								{ addScope(); return 'DO' }
-"OUT"								return 'OUT'
+"print"							return 'OUT'
 "forward"						return 'FORWARD'
 "rotateRight"					return 'ROTRIGHT'
 "pickUp"							return 'PICKUP'
