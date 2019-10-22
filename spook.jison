@@ -272,11 +272,7 @@ assign:
 		addQuad(OPERATIONS.ASSIGN, $3.dir, -1, assignVar.dir);
 	}
 	| NAME '[' expression ']' ASSIGN expression {
-		// var assignVar = getVariableFromName($1);
-		// if(!assignVar){
-		// }
-		
-		// addQuad(OPERATIONS.ASSIGN, , -1, assignVar.dir);
+
 	}
 	;
 
@@ -317,9 +313,10 @@ factor:
 	'(' expression ')' {
 		$$ = $2;
 	}
-	// | addSub val {
-	// 	console.log($2);
-	// }
+	| '-' val {
+		CONST[$2.dir-100000] = CONST[$2.dir-100000] * -1;
+		$$ = $2;
+	}
 	| val
 	;
 
