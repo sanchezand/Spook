@@ -233,7 +233,7 @@ start:
 		console.log(VARS);
 		console.log(QUADS);
 		console.log(prettyQuads());
-		return false
+		return prettyQuads();
 	}
 	;
 

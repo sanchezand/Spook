@@ -1,2 +1,2 @@
 def A,B,C,D,E,F,G,H,I,J,K,res : decimal
-res = 20+-20000
+res = (A+B)*C/(D+E)-F*G+H*(I+J)-K

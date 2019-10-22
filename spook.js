@@ -89,7 +89,7 @@ case 1:
 		console.log(VARS);
 		console.log(QUADS);
 		console.log(prettyQuads());
-		return false
+		return prettyQuads();
 	
 break;
 case 4:
