@@ -1,20 +1,2 @@
-def test : decimal
-test = 2
-
-fun testFunction()
-	test = 3 + test
-	repeat test do
-		moveRight()
-	end
-end
-
-if test>4 then
-	putDown()
-	forward()
-else
-	moveRight()
-	forward()
-	pickUp()
-end
-
-testFunction()
+def A,B,C,D,E,F,G,H,I,J,K,res : decimal
+res = (A+B)*C/(D+E)-F*G>H*(I+J)-K

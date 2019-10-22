@@ -1,93 +1,173 @@
 /* description: Parses end executes mathematical expressions. */
 
 %{
-	var GLOBAL_TABLE = [];
-	var SCOPE_TABLE = [];
-	
-	var func = false;
-	var scope = -1;
+	var QUADS = [];
+	var VARS = [];
+	var TEMPS = [];
+	var CONST = [];
 
-	function addVar(name, type, array_size=false){
-		var val = {
-			name,
-			type,
-			scope,
-			val: type=='bool' ? false : -1
-		}
-		if(array_size){
-			val.size = array_size;
-			val.val = Array(array_size).fill(type=='bool' ? false : -1)
-		}
-		if(scope<=-1){
-			if(GLOBAL_TABLE.find(a=>a.name==name)) return false;
-			GLOBAL_TABLE.push(val);
-		}
-		else{
-			if(SCOPE_TABLE[scope].find(a=>a.name==name)) return false;
-			SCOPE_TABLE[scope].push(val);
-		}
-		return true;
+	var opStack = [];
+	var valStack = [];
+
+	var OPERATIONS = {
+		SUM: 1,
+		MINUS: 2,
+		MULT: 3,
+		DIVIDE: 4,
+		AND: 5,
+		EQUALS: 6,
+		NOT: 7,
+		GTRTHN: 8,
+		LESSTHN: 9,
+		ASSIGN: 10,
+		GOTO: 11,
+		GOTOF: 12,
+		GOTOT: 13,
+		PRINT: 14,
+
 	}
 
-	function getValFromType(val, type){
-		if(type=='bool'){
-			return val > 0;
-		}else{
-			return parseFloat(val);
-		}
+	// Declares the start of the if statement
+	function declareIf(){
+ 
 	}
 
-	function setVar(name, val, pos=false){
-		if(scope<=-1){
-			var ix = GLOBAL_TABLE.findIndex(a=>a.name==name);
-			if(ix==-1) return false;
-			if(GLOBAL_TABLE[ix].size && pos===false) return false;
-			if(pos!==false){
-				if(pos>GLOBAL_TABLE[ix].size-1) return false;
-				GLOBAL_TABLE[ix].val[pos] = getValFromType(val, GLOBAL_TABLE[ix].type);
-			}else{
-				GLOBAL_TABLE[ix].val = getValFromType(val, GLOBAL_TABLE[ix].type);
-			}
-		}else{
-			var ix = SCOPE_TABLE[scope].findIndex(a=>a.name==name);
-			if(ix==-1) return false;
-			if(SCOPE_TABLE[scope][ix].size && !pos) return false;
-			if(pos!==false){
-				if(pos>SCOPE_TABLE[scope][ix].size-1) return false;
-				SCOPE_TABLE[scope][ix].val[pos] = getValFromType(val, SCOPE_TABLE[scope][ix].type);
-			}else{
-				SCOPE_TABLE[scope][ix].val = getValFromType(val, SCOPE_TABLE[scope][ix].type);
-			}
-		}
+	// Executes right after "then"
+	function startIf(){
+
 	}
 
-	function getVar(name){
-		if(scope<=-1){
-			return GLOBAL_TABLE.find(a=>a.name==name);
-		}else{
-			var scope_var = SCOPE_TABLE[scope].find(a=>a.name==name);
-			if(!scope_var){
-				return GLOBAL_TABLE.find(a=>a.name==name);
-			} else return scope_var;
-		}
-	}
-
-	function addScope(){
-		SCOPE_TABLE.push([])
-		scope = SCOPE_TABLE.length-1;
-	}
-
+	// Exists a scope. Afer an "end"
 	function exitScope(){
-		SCOPE_TABLE.pop();
-		scope = SCOPE_TABLE.length-1;
+
 	}
 
-	function startFunction(){
-		func = [];
+	// Declares a function. After "fun"
+	function delcareFunction(){
+
 	}
 
-	function endFunction(){
+	// Declares a repeat. After "repeat"
+	function declareRepeat(){
 
+	}
+
+	// Declares that a loop started. After "do"
+	function beginDo(){
+
+	}
+
+	function addConstant(val){
+		var dir = CONST.length+100000;
+		CONST.push(val);
+		return dir;
+	}
+
+	function getConstant(dir){
+		if(dir<100000) return -1;
+		return CONST[dir];
+	}
+
+	// Add temporary var and return its direction.
+	function addTemp(val){
+		var dir = TEMPS.length+10000;
+		TEMPS.push(val);
+		return dir;
+	}
+
+	function getTemp(dir){
+		if(dir<10000 || dir>=100000) return -1;
+		return TEMPS[dir];
+	}
+
+	// Defines a variable
+	function defineVariable(name, type, size=false){
+		var dir = VARS.length;
+		var newVal = {
+			name, type, val: 0
+		}
+		VARS.push(newVal);
+		return dir;
+	}
+
+	// Set the variable value, index is optional for array
+	function setVariable(dir, value){
+		VARS[dir] = value;
+	}
+
+	// Get a variable value
+	function getVariable(dir){
+		if(dir==-1) return false;
+		if(dir>=10000 && dir<100000){ // TEMP
+			return {
+				name: 't'+(dir-10000),
+				val: TEMPS[dir-10000],
+				dir,
+				temp: true
+			}
+		}else if(dir>=100000){ // CONSTANT
+			return {
+				name: CONST[dir-100000].toString(),
+				val: CONST[dir-10000],
+				dir,
+				constant: true
+			}
+		}else{
+			return {
+				...VARS[dir],
+				dir
+			}
+		}
+	}
+
+	function getVariableFromName(name){
+		var ix = VARS.findIndex(a=>a.name==name);
+		var val = VARS[ix]; 
+		return {
+			...val,
+			dir: ix
+		}
+	}
+
+	function addQuad(opCode, dir1, dir2, dir3){
+		QUADS.push([opCode, dir1, dir2, dir3]);
+		return dir3;
+	}
+
+	function solveQuad(quad){
+		var val;
+		var leftVal = getVariable(quad[1]).val;
+		var rightVal = getVariable(quad[2]).val;
+		switch(quad[0]){
+			case 1: return setVariable(quad[3], leftVal + rightVal);
+			case 2: return setVariable(quad[3], leftVal - rightVal);
+			case 3: return setVariable(quad[3], leftVal * rightVal);
+			case 4: return setVariable(quad[3], leftVal / rightVal);
+			case 5: return setVariable(quad[3], leftVal && rightVal);
+			case 6: return setVariable(quad[3], leftVal == rightVal);
+			case 7: return setVariable(quad[3], leftVal);
+		}
+	}
+
+	function opGetSymbol(op){
+		var t = ['+','-','x','/','&&','==','!=','>','<','='];
+		return t[parseInt(op-1)];
+	}
+
+	function prettyQuads(){
+		var q = []
+		for(var i of QUADS){
+			var v1 = getVariable(i[1]);
+			var v2 = getVariable(i[2]);
+			var v3 = getVariable(i[3]);
+			q.push([
+				opGetSymbol(i[0]),
+				(v1 ? ((v1.temp && v1.val) ? v1.val : v1.name) : -1),
+				(v2 ? ((v2.temp && v2.val) ? v2.val : v2.name) : -1),
+				(v3 ? ((v3.temp && v3.val) ? v3.val : v3.name) : -1)
+			])
+		}
+		return q;
 	}
 %}
 
@@ -113,18 +193,20 @@
 "]"						 		return ']'
 "decimal"						return 'DECIMAL'
 "bool"						 	return 'BOOL'
-"if"								return 'IF'
-"then"							{ addScope(); return 'THEN' }
-"end"								{ exitScope(); return 'END' }
 "else"							return 'ELSE'
 "=="								return 'EQUALS'
 ">"								return 'GTRTHN'
 "<"								return 'LESTHN'
 "NOT"								return 'NOT'
-"fun"								{ addScope(); startFunction(); return 'FUNCTION' }
+
+"if"								{ declareIf(); return 'IF' }
+"then"							{ startIf(); return 'THEN' }
+"end"								{ exitScope(); return 'END' }
+"fun"								{ declareFunction(); return 'FUNCTION' }
+"repeat"							{ declareRepeat(); return 'REPEAT' }
+"do"								{ beginDo(); return 'DO' }
+
 "return"							return 'RETURN'
-"repeat"							return 'REPEAT'
-"do"								{ addScope(); return 'DO' }
 "print"							return 'OUT'
 "forward"						return 'FORWARD'
 "rotateRight"					return 'ROTRIGHT'
@@ -141,18 +223,17 @@
 
 /* operator associations and precedence */
 
-%left '+' '-'
-%left '*' '/'
-
 %start start
 
 %% /* language grammar */
 
 start:
 	statements EOF {
-		console.log("Global:", GLOBAL_TABLE);
-		console.log("Scope:", SCOPE_TABLE);
-		return GLOBAL_TABLE
+		console.log(TEMPS);
+		console.log(VARS);
+		console.log(QUADS);
+		console.log(prettyQuads());
+		return false
 	}
 	;
 
@@ -164,15 +245,16 @@ statements:
 vars:
 	DEF idlist ':' type {
 		for(var i of $2){
-			var added = addVar(i, $4);
+			var added = defineVariable(i, $4);
 			if(!added) {
 				// THROW ERROR
 			}
+
 		}
 	}
 	| DEF idlist ':' type '[' NUMBER ']' {
 		for(var i of $2){
-			var added = addVar(i, $4, parseInt($6))
+			var added = defineVariable(i, $4, parseInt($6))
 			if(!added){
 				// THROW ERROR
 			}
@@ -182,10 +264,19 @@ vars:
 
 assign:
 	NAME ASSIGN expression {
-		setVar($1, $3);
+		// setVariable($1, $3);
+		var assignVar = getVariableFromName($1);
+		if(!assignVar){
+			// THROW ERROR
+		}
+		addQuad(OPERATIONS.ASSIGN, $3.dir, -1, assignVar.dir);
 	}
 	| NAME '[' expression ']' ASSIGN expression {
-		setVar($1, $6, $3);
+		// var assignVar = getVariableFromName($1);
+		// if(!assignVar){
+		// }
+		
+		// addQuad(OPERATIONS.ASSIGN, , -1, assignVar.dir);
 	}
 	;
 
@@ -194,16 +285,9 @@ expression:
 		$$ = $1;
 	}
 	| exp compOp exp{
-		$$ = $2=='*' ? $1*$3 : $1/$3;
-		if($2=='>'){
-			$$ = $1 > $3;
-		}else if($2=='<'){
-			$$ = $1 < $3;
-		}else if($2=='=='){
-			$$ = $1 == $3;
-		}else if($3=='!='){
-			$$ = $1 != $3;
-		}
+		var temp = addTemp();
+		addQuad($2, $1.dir, $3.dir, temp);
+		$$ = temp;
 	}
 	;
 
@@ -212,7 +296,9 @@ exp:
 		$$ = $1
 	}
 	| termino addSub exp {
-		$$ = $2=='+' ? $1+$3 : $1-$3;
+		var temp = addTemp();
+		addQuad($2, $1.dir, $3.dir, temp)
+		$$ = { dir: temp };
 	}
 	;
 
@@ -221,7 +307,9 @@ termino:
 		$$ = $1
 	}
 	| factor multDiv termino{
-		$$ = $2=='*' ? $1*$3 : $1/$3;
+		var temp = addTemp();
+		addQuad($2, $1.dir, $3.dir, temp)
+		$$ = { dir: temp };
 	}
 	;
 
@@ -229,11 +317,40 @@ factor:
 	'(' expression ')' {
 		$$ = $2;
 	}
-	| addSub val {
-		$$ = parseFloat($2) * ($1=='-' ? -1 : 1);
+	// | addSub val {
+	// 	console.log($2);
+	// }
+	| val
+	;
+
+val:
+	NUMBER {
+		var dir = addConstant(parseFloat($1));
+		$$ = { dir };
 	}
-	| val {
-		$$ = $1
+	| BOOLEAN {
+		var dir = addConstant($1 == 'true');
+		$$ = { dir };
+	}
+	| id
+	;
+	
+id:
+	NAME {
+		var val = getVariableFromName($1);
+		$$ = val;
+	}
+	| NAME '[' expression ']' {
+		var val = getVariableFromName($1);
+		var valFromArray = {
+			dir: val.dir,
+			index: parseInt($3),
+			val: val.val[parseInt($3)]
+		}
+		$$ = valFromArray;
+	}
+	| NAME '(' expressionlist ')' {
+		// FUNCTION CALL
 	}
 	;
 
@@ -253,38 +370,9 @@ expressionlist:
 		$$ = [$1, ...$2]
 	};
 
-id:
-	NAME {
-		$$ = getVar($1).val;
-	}
-	| NAME '[' expression ']' {
-		//Get val array in var table 
-		var val = getVar($1);
-		var pos = parseInt($3);
-		if(!val || !val.size || pos>val.size-1){
-			// THROW ERROR
-		}
-		$$ = val.val[pos];
-	}
-	| NAME '(' expressionlist ')' {
-		// Calc val from function call
-		console.log("FuncCall:", $1, $3)
-	}
-	;
-
-val:
-	NUMBER {
-		$$ = parseFloat($1)
-	}
-	| BOOLEAN {
-		$$ = $1 === 'true'
-	}
-	| id
-	;
-
 idlist:
 	NAME {
-		$$ = [$1]
+		$$ = [ $1 ];
 	}
 	| NAME ',' idlist{
 		$$ = [$1, ...$3]
@@ -319,7 +407,7 @@ actions:
 
 	}
 	| INVENTORY '(' ')'{
-		$$ = yy.inventory
+		
 	}
 	| OUT '(' expression ')'{
 		console.log($3)
@@ -362,10 +450,18 @@ type:
 	DECIMAL | BOOL;
 
 addSub:
-	'+' | '-';
+	'+' { $$ = OPERATIONS.SUM } 
+	| '-' { $$ = OPERATIONS.MINUS }
+	;
 
 multDiv:
-	'*' | '/';
+	'*' { $$ = OPERATIONS.MULT }
+	| '/' { $$ = OPERATIONS.DIVIDE }
+	;
 
 compOp:
-	EQUALS | GTRTHN | LESTHN | NOT;
+	EQUALS { $$ = OPERATIONS.EQUALS } 
+	| GTRTHN { $$ = OPERATIONS.GTRTHN }
+	| LESTHN { $$ = OPERATIONS.LESSTHN }
+	| NOT { $$ = OPERATIONS.NOT }
+	;

@@ -1,4 +1,2 @@
-fun lmao(test : decimal)
-	
-end
-
+def A,B,C,D,E,F,G,H,I,J,K,res : decimal
+res = A + B * C - D * E
