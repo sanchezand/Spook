@@ -169,6 +169,11 @@
 		}
 		return q;
 	}
+
+	function addOperator(op){
+		console.log('INSERTED ' + opGetSymbol(op));
+		opStack.push(op);
+	}
 %}
 
 
@@ -447,18 +452,42 @@ type:
 	DECIMAL | BOOL;
 
 addSub:
-	'+' { $$ = OPERATIONS.SUM } 
-	| '-' { $$ = OPERATIONS.MINUS }
+	'+' { 
+		addOperator(OPERATIONS.SUM);
+		$$ = OPERATIONS.SUM
+	} 
+	| '-' { 
+		addOperator(OPERATIONS.MINUS);
+		$$ = OPERATIONS.MINUS
+	}
 	;
 
 multDiv:
-	'*' { $$ = OPERATIONS.MULT }
-	| '/' { $$ = OPERATIONS.DIVIDE }
+	'*' { 
+		addOperator(OPERATIONS.MULT);
+		$$ = OPERATIONS.MULT
+	}
+	| '/' { 
+		addOperator(OPERATIONS.DIVIDE);
+		$$ = OPERATIONS.DIVIDE
+	}
 	;
 
 compOp:
-	EQUALS { $$ = OPERATIONS.EQUALS } 
-	| GTRTHN { $$ = OPERATIONS.GTRTHN }
-	| LESTHN { $$ = OPERATIONS.LESSTHN }
-	| NOT { $$ = OPERATIONS.NOT }
+	EQUALS { 
+		addOperator(OPERATIONS.EQUALS);
+		$$ = OPERATIONS.EQUALS
+	} 
+	| GTRTHN { 
+		addOperator(OPERATIONS.GTRTHN);
+		$$ = OPERATIONS.GTRTHN
+	}
+	| LESTHN { 
+		addOperator(OPERATIONS.LESSTHN);
+		$$ = OPERATIONS.LESSTHN
+	}
+	| NOT { 
+		addOperator(OPERATIONS.NOT);
+		$$ = OPERATIONS.NOT
+	}
 	;
