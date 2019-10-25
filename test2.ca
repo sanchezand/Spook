@@ -1,2 +1,2 @@
 def A,B,C,D,E,F,G,H,I,J,K,res : decimal
-A = B + C * D / F
+A = C * D + 4 / E 

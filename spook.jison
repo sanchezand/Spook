@@ -10,6 +10,7 @@
 	var valStack = [];
 
 	var OPERATIONS = {
+		ASSIGN: 0,
 		SUM: 1,
 		MINUS: 2,
 		MULT: 3,
@@ -171,8 +172,24 @@
 	}
 
 	function addOperator(op){
-		console.log('INSERTED ' + opGetSymbol(op));
 		opStack.push(op);
+	}
+
+	function generateQuad(){
+		var peek = opStack.pop();
+		var temp;
+		console.log(valStack.map(a=>getVariable(a).name))
+		var valDer = valStack.pop(), valIz = valStack.pop();
+
+		if(peek==OPERATIONS.ASSIGN){
+			temp = valIz;
+		}else{
+			temp = addTemp();
+		}
+
+		addQuad(peek, (valIz || -1), valDer, temp)
+		valStack.push(temp);
+		return { dir: temp }
 	}
 %}
 
@@ -234,9 +251,8 @@
 
 start:
 	statements EOF {
-		console.log(TEMPS);
-		console.log(VARS);
-		console.log(QUADS);
+		console.log(opStack);
+		console.log(valStack);
 		console.log(prettyQuads());
 		return prettyQuads();
 	}
@@ -268,52 +284,64 @@ vars:
 	;
 
 assign:
-	NAME ASSIGN expression {
-		// setVariable($1, $3);
-		var assignVar = getVariableFromName($1);
-		if(!assignVar){
-			// THROW ERROR
-		}
-		addQuad(OPERATIONS.ASSIGN, $3.dir, -1, assignVar.dir);
+	NAME postName assignOp expression {
+		generateQuad();
 	}
 	| NAME '[' expression ']' ASSIGN expression {
 
 	}
 	;
 
+postName: 
+	{
+		var assignVar = getVariableFromName($1);
+		if(!assignVar){
+			// THROW ERROR
+		}
+		valStack.push(assignVar.dir)
+	};
+
 expression:
 	exp {
 		$$ = $1;
 	}
 	| exp compOp exp{
-		var temp = addTemp();
-		addQuad($2, $1.dir, $3.dir, temp);
-		$$ = temp;
+		// var temp = addTemp();
+		// addQuad($2, $1.dir, $3.dir, temp);
+		// $$ = temp;
 	}
 	;
 
 exp:
-	termino {
+	termino postTermino {
 		$$ = $1
 	}
-	| termino addSub exp {
-		var temp = addTemp();
-		addQuad($2, $1.dir, $3.dir, temp)
-		$$ = { dir: temp };
-	}
+	| termino postTermino addSub exp
 	;
+
+postTermino: 
+	{
+		if([OPERATIONS.SUM, OPERATIONS.MINUS].indexOf(opStack[opStack.length-1])!=-1){
+			console.log("GENERATE +-")
+			$$ = generateQuad();
+		}
+	};
 
 termino:
-	factor {
+	factor postFactor {
 		$$ = $1
 	}
-	| factor multDiv termino{
-		var temp = addTemp();
-		addQuad($2, $1.dir, $3.dir, temp)
-		$$ = { dir: temp };
-	}
+	| factor postFactor multDiv termino
 	;
 
+postFactor: 
+	{
+		if([OPERATIONS.MULT, OPERATIONS.DIVIDE].indexOf(opStack[opStack.length-1])!=-1){
+			console.log("GENERATE */")
+			$$ = generateQuad();
+		}
+	};
+	
 factor:
 	'(' expression ')' {
 		$$ = $2;
@@ -322,7 +350,9 @@ factor:
 		CONST[$2.dir-100000] = CONST[$2.dir-100000] * -1;
 		$$ = $2;
 	}
-	| val
+	| val {
+		valStack.push($1.dir);
+	}
 	;
 
 val:
@@ -491,3 +521,9 @@ compOp:
 		$$ = OPERATIONS.NOT
 	}
 	;
+
+assignOp: 
+	ASSIGN {
+		addOperator(OPERATIONS.ASSIGN);
+		$$ = OPERATIONS.ASSIGN;
+	};
