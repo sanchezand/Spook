@@ -31,8 +31,13 @@
 	</style>
 	<body>
 		<div class="body">
-			<div id="editor">def A,B,C,D,E,F,G,H,I,J,K,res : decimal
-res = (A+B)*C/(D+E)-F*G/H*(I+J)-K
+			<div id="editor">def A,B,C,D,E : decimal
+A = B + C
+repeat A>B*C do
+	A = B-C
+	B = B+E
+end
+C = A + B
 </div>
 			<br>
 			<pre id="result"></pre>
@@ -54,7 +59,7 @@ res = (A+B)*C/(D+E)-F*G/H*(I+J)-K
 				for(var i of res){
 					pretty += i[0]+','+i[1]+','+i[2]+','+i[3]+'\n';
 				}
-				document.getElementById('result').innerText = 'CUADRUPLOS: \n' + pretty+'\n(orden de operaciones mal)';
+				document.getElementById('result').innerText = 'CUADRUPLOS: \n' + pretty+'\n';
 			}catch(e){
 				document.getElementById('result').innerText = 'Código invalido';
 				console.log(e)

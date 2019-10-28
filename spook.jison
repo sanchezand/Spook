@@ -8,6 +8,8 @@
 
 	var opStack = [];
 	var valStack = [];
+	var jumpStack = [];
+	var count = 0;
 
 	var OPERATIONS = {
 		ASSIGN: 0,
@@ -36,7 +38,23 @@
 
 	// Executes right after "then"
 	function startIf(){
+		var cond = valStack.pop();
+		addQuad(OPERATIONS.GOTOF, cond, -1, null);
+		jumpStack.push(count-1);
+	}
 
+	// Executes before if "end"
+	function endIf(){
+		var jump = jumpStack.pop();
+		QUADS[jump][3] = count;
+	}
+
+	// Executes before if "else"
+	function elseIf(){
+		var f = jumpStack.pop();
+		addQuad(OPERATIONS.GOTO, -1, -1, null);
+		jumpStack.push(count-1);
+		QUADS[f][3] = count;
 	}
 
 	// Exists a scope. Afer an "end"
@@ -50,14 +68,24 @@
 	}
 
 	// Declares a repeat. After "repeat"
-	function declareRepeat(){
-
+	function defineLoop(){
+		jumpStack.push(count);
 	}
 
 	// Declares that a loop started. After "do"
-	function beginDo(){
-
+	function startLoop(){
+		addQuad(OPERATIONS.GOTOF, valStack.pop(), -1, null);
+		jumpStack.push(count-1);
 	}
+
+	// Declares that a loop has ended. Before "end"
+	function endLoop(){
+		var f = jumpStack.pop();
+		var ret = jumpStack.pop();
+		addQuad(OPERATIONS.GOTO, -1, -1, ret);
+		QUADS[f][3] = count;
+	}
+
 
 	function addConstant(val){
 		var dir = CONST.length+100000;
@@ -133,6 +161,7 @@
 
 	function addQuad(opCode, dir1, dir2, dir3){
 		QUADS.push([opCode, dir1, dir2, dir3]);
+		count += 1;
 		return dir3;
 	}
 
@@ -152,13 +181,14 @@
 	}
 
 	function opGetSymbol(op){
-		var t = ['+','-','x','/','AND','!=','OR','==','>','<','='];
+		var t = ['+','-','x','/','AND','!=','OR','==','>','<','=', 'GOTO', 'GOTOF', 'GOTOT', 'PRINT'];
 		return t[parseInt(op-1)];
 	}
 
-	function prettyQuads(){
+	function prettyQuads(qu){
+		if(!qu) qu = QUADS;
 		var q = []
-		for(var i of QUADS){
+		for(var i of qu){
 			var v1 = getVariable(i[1]);
 			var v2 = getVariable(i[2]);
 			var v3 = getVariable(i[3]);
@@ -166,7 +196,7 @@
 				opGetSymbol(i[0]),
 				(v1 ? ((v1.temp && v1.val) ? v1.val : v1.name) : -1),
 				(v2 ? ((v2.temp && v2.val) ? v2.val : v2.name) : -1),
-				(v3 ? ((v3.temp && v3.val) ? v3.val : v3.name) : -1)
+				i[0]>=12 && i[0]<=14 ? i[3] : (v3 ? ((v3.temp && v3.val) ? v3.val : v3.name) : -1)
 			])
 		}
 		return q;
@@ -187,8 +217,10 @@
 			temp = addTemp();
 		}
 
-		addQuad(peek, (valIz || -1), valDer, temp)
+		addQuad(peek, peek==OPERATIONS.ASSIGN ? valDer : valIz, peek==OPERATIONS.ASSIGN ? -1 : valDer, temp)
 		valStack.push(temp);
+		// console.log(valStack);
+		// console.log(prettyQuads(QUADS));
 		return { dir: temp }
 	}
 %}
@@ -223,12 +255,12 @@
 "(and|AND)"						return 'AND'
 "(or|OR)"						return 'OR'
 
-"if"								{ declareIf(); return 'IF' }
-"then"							{ startIf(); return 'THEN' }
-"end"								{ exitScope(); return 'END' }
-"fun"								{ declareFunction(); return 'FUNCTION' }
-"repeat"							{ declareRepeat(); return 'REPEAT' }
-"do"								{ beginDo(); return 'DO' }
+"if"								return 'IF'
+"then"							return 'THEN'
+"end"								return 'END'
+"fun"								return 'FUNCTION'
+"repeat"							return 'REPEAT'
+"do"								return 'DO'
 
 "return"							return 'RETURN'
 "print"							return 'OUT'
@@ -253,6 +285,7 @@
 
 start:
 	statements EOF {
+		console.log(QUADS);
 		console.log(prettyQuads());
 		return prettyQuads();
 	}
@@ -410,13 +443,21 @@ idlist:
 	};
 
 conditional:
-	IF expression THEN statements END {
-		
-	}
-	| IF expression THEN statements ELSE statements END {
-
-	}
+	IF expression startIf THEN statements endIf END 
+	| IF expression startIf THEN statements ELSE elseIf statements endIf END
 	;
+
+startIf: {
+	startIf();
+};
+
+endIf: {
+	endIf();
+};
+
+elseIf: {
+	elseIf();
+};
 
 actions:
 	FORWARD '(' ')'{
@@ -465,7 +506,21 @@ function:
 	; 
 
 loop:
-	REPEAT expression DO statements END;
+	REPEAT defineLoop expression DO startLoop statements endLoop END;
+
+defineLoop: {
+	defineLoop();
+};
+
+startLoop: {
+	startLoop();
+};
+
+endLoop: {
+	endLoop();
+};
+
+
 
 statement:
 	vars
