@@ -16,15 +16,16 @@
 		MULT: 3,
 		DIVIDE: 4,
 		AND: 5,
-		EQUALS: 6,
-		NOT: 7,
-		GTRTHN: 8,
-		LESSTHN: 9,
-		ASSIGN: 10,
-		GOTO: 11,
-		GOTOF: 12,
-		GOTOT: 13,
-		PRINT: 14,
+		NOT: 6,
+		OR: 7,
+		EQUALS: 8,
+		GTRTHN: 9,
+		LESSTHN: 10,
+		ASSIGN: 11,
+		GOTO: 12,
+		GOTOF: 13,
+		GOTOT: 14,
+		PRINT: 15,
 
 	}
 
@@ -151,7 +152,7 @@
 	}
 
 	function opGetSymbol(op){
-		var t = ['+','-','x','/','&&','==','!=','>','<','='];
+		var t = ['+','-','x','/','AND','!=','OR','==','>','<','='];
 		return t[parseInt(op-1)];
 	}
 
@@ -178,7 +179,6 @@
 	function generateQuad(){
 		var peek = opStack.pop();
 		var temp;
-		console.log(valStack.map(a=>getVariable(a).name))
 		var valDer = valStack.pop(), valIz = valStack.pop();
 
 		if(peek==OPERATIONS.ASSIGN){
@@ -219,7 +219,9 @@
 "=="								return 'EQUALS'
 ">"								return 'GTRTHN'
 "<"								return 'LESTHN'
-"NOT"								return 'NOT'
+"(not|NOT)"						return 'NOT'
+"(and|AND)"						return 'AND'
+"(or|OR)"						return 'OR'
 
 "if"								{ declareIf(); return 'IF' }
 "then"							{ startIf(); return 'THEN' }
@@ -251,8 +253,6 @@
 
 start:
 	statements EOF {
-		console.log(opStack);
-		console.log(valStack);
 		console.log(prettyQuads());
 		return prettyQuads();
 	}
@@ -285,7 +285,7 @@ vars:
 
 assign:
 	NAME postName assignOp expression {
-		generateQuad();
+		$$ = generateQuad();
 	}
 	| NAME '[' expression ']' ASSIGN expression {
 
@@ -309,6 +309,7 @@ expression:
 		// var temp = addTemp();
 		// addQuad($2, $1.dir, $3.dir, temp);
 		// $$ = temp;
+		generateQuad();
 	}
 	;
 
@@ -322,7 +323,6 @@ exp:
 postTermino: 
 	{
 		if([OPERATIONS.SUM, OPERATIONS.MINUS].indexOf(opStack[opStack.length-1])!=-1){
-			console.log("GENERATE +-")
 			$$ = generateQuad();
 		}
 	};
@@ -337,7 +337,6 @@ termino:
 postFactor: 
 	{
 		if([OPERATIONS.MULT, OPERATIONS.DIVIDE].indexOf(opStack[opStack.length-1])!=-1){
-			console.log("GENERATE */")
 			$$ = generateQuad();
 		}
 	};
@@ -515,6 +514,14 @@ compOp:
 	| LESTHN { 
 		addOperator(OPERATIONS.LESSTHN);
 		$$ = OPERATIONS.LESSTHN
+	}
+	| AND {
+		addOperator(OPERATIONS.AND);
+		$$ = OPERATIONS.AND;
+	}
+	| OR {
+		addOperator(OPERATIONS.OR);
+		$$ = OPERATIONS.OR;
 	}
 	| NOT { 
 		addOperator(OPERATIONS.NOT);
