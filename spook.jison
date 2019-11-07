@@ -3,8 +3,9 @@
 %{
 	var QUADS = [];
 	var VARS = [];
-	var TEMPS = [];
+	var TEMPS = 0;
 	var CONST = [];
+	var FUNCS = [];
 
 	var opStack = [];
 	var valStack = [];
@@ -29,11 +30,11 @@
 		GOTOT: 14,
 		PRINT: 15,
 
-	}
-
-	// Declares the start of the if statement
-	function declareIf(){
- 
+		ERA: 16,
+		GOSUB: 17,
+		ENDPROG: 18,
+		RETURN: 19,
+		PARAM: 20
 	}
 
 	// Executes right after "then"
@@ -55,11 +56,6 @@
 		addQuad(OPERATIONS.GOTO, -1, -1, null);
 		jumpStack.push(count-1);
 		QUADS[f][3] = count;
-	}
-
-	// Exists a scope. Afer an "end"
-	function exitScope(){
-
 	}
 
 	// Declares a function. After "fun"
@@ -86,6 +82,12 @@
 		QUADS[f][3] = count;
 	}
 
+	function functionCall(name, params){
+		addQuad(OPERATIONS.ERA, name, -1, -1);
+		for(var i=0; i<params.length; i++){
+			addQuad(OPERATIONS.PARAM, i, -1, params[i].dir)
+		}
+	}
 
 	function addConstant(val){
 		var dir = CONST.length+100000;
@@ -99,15 +101,10 @@
 	}
 
 	// Add temporary var and return its direction.
-	function addTemp(val){
-		var dir = TEMPS.length+10000;
-		TEMPS.push(val);
+	function addTemp(){
+		var dir = TEMPS+10000;
+		TEMPS++;
 		return dir;
-	}
-
-	function getTemp(dir){
-		if(dir<10000 || dir>=100000) return -1;
-		return TEMPS[dir];
 	}
 
 	// Defines a variable
@@ -181,7 +178,11 @@
 	}
 
 	function opGetSymbol(op){
-		var t = ['+','-','x','/','AND','!=','OR','==','>','<','=', 'GOTO', 'GOTOF', 'GOTOT', 'PRINT'];
+		var t = [
+			'+','-','x','/','AND','!=','OR','==','>','<','=', 
+			'GOTO', 'GOTOF', 'GOTOT', 'PRINT',
+			'ERA', 'GOSUB', 'ENDPROG', 'RETURN', 'PARAM'
+		];
 		return t[parseInt(op-1)];
 	}
 
@@ -192,6 +193,15 @@
 			var v1 = getVariable(i[1]);
 			var v2 = getVariable(i[2]);
 			var v3 = getVariable(i[3]);
+			if(i[0]==OPERATIONS.PARAM){
+				v1 = false;
+				v2 = false;
+			}
+			if(i[0]==OPERATIONS.ERA){
+				v1 = { name: i[1] };
+				v2 = false;
+				v3 = false;
+			}
 			q.push([
 				opGetSymbol(i[0]),
 				(v1 ? ((v1.temp && v1.val) ? v1.val : v1.name) : -1),
@@ -219,8 +229,6 @@
 
 		addQuad(peek, peek==OPERATIONS.ASSIGN ? valDer : valIz, peek==OPERATIONS.ASSIGN ? -1 : valDer, temp)
 		valStack.push(temp);
-		// console.log(valStack);
-		// console.log(prettyQuads(QUADS));
 		return { dir: temp }
 	}
 %}
@@ -336,42 +344,45 @@ postName:
 
 expression:
 	exp {
-		$$ = $1;
+		$$ = { dir: valStack[valStack.length-1] };
 	}
 	| exp compOp exp{
 		// var temp = addTemp();
 		// addQuad($2, $1.dir, $3.dir, temp);
 		// $$ = temp;
-		generateQuad();
+		$$ = generateQuad();
 	}
 	;
 
 exp:
 	termino postTermino {
-		$$ = $1
+		$$ = ($2 || $1)
 	}
-	| termino postTermino addSub exp
+	| termino postTermino addSub exp {
+	}
 	;
 
 postTermino: 
 	{
 		if([OPERATIONS.SUM, OPERATIONS.MINUS].indexOf(opStack[opStack.length-1])!=-1){
 			$$ = generateQuad();
-		}
+		}else $$ = false;
 	};
 
 termino:
 	factor postFactor {
-		$$ = $1
+		$$ = ($2 || $1)
 	}
-	| factor postFactor multDiv termino
+	| factor postFactor multDiv termino {
+		
+	}
 	;
 
 postFactor: 
 	{
 		if([OPERATIONS.MULT, OPERATIONS.DIVIDE].indexOf(opStack[opStack.length-1])!=-1){
 			$$ = generateQuad();
-		}
+		}else $$ = false;
 	};
 	
 factor:
@@ -405,16 +416,17 @@ id:
 		$$ = val;
 	}
 	| NAME '[' expression ']' {
-		var val = getVariableFromName($1);
-		var valFromArray = {
-			dir: val.dir,
-			index: parseInt($3),
-			val: val.val[parseInt($3)]
-		}
-		$$ = valFromArray;
+		// var val = getVariableFromName($1);
+		// var valFromArray = {
+		// 	dir: val.dir,
+		// 	index: parseInt($3),
+		// 	val: val.val[parseInt($3)]
+		// }
+		// $$ = valFromArray;
 	}
 	| NAME '(' expressionlist ')' {
-		// FUNCTION CALL
+		// FUNCTIONCALL
+		functionCall($1, $3);
 	}
 	;
 
@@ -487,23 +499,43 @@ actions:
 	;
 
 funparams:
-	'(' ')'
-	| '(' funparams1 ')'
+	'(' ')' {
+		$$ = []
+	}
+	| '(' funparams1 ')' {
+		$$ = $2;
+	}
 	;
 
 funparams1:
-	NAME ':' type funparams2
+	NAME ':' type funparams2 {
+		$$ = [ { name: $1, type: $3 }, ...$4 ]
+	}
 	;
 
 funparams2:
-	|
-	',' NAME ':' type funparams2
+	{
+		$$ = []
+	}
+	| ',' NAME ':' type funparams2 {
+		$$ = [ { name: $2, type: $4 }, ...$5 ]
+	}
 	;
 
 function:
-	FUNCTION NAME funparams statements return expression END
-	| FUNCTION NAME funparams statements END
+	FUNCTION NAME funparams defineFunction statements return expression endFunc
+	| FUNCTION NAME funparams defineFunction statements endFunc
 	; 
+
+defineFunction: {
+	// param list = $1
+
+};
+
+endFunc: 
+	END {
+
+	};
 
 loop:
 	REPEAT defineLoop expression DO startLoop statements endLoop END;

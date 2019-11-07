@@ -1,7 +1,6 @@
-def A,B,C,D,E : decimal
-A = B + C
-repeat A>B*C do
-	A = B-C
-	B = B+E
+def d : decimal
+fun hello(k : decimal)
+	k = a + d
 end
-C = A + B
+
+hello(d, d-2)

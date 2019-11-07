@@ -1,2 +1,7 @@
-def A,B,C,D,E,F,G,H,I,J,K,res : decimal
-res = (A+B)*C/(D+E)-F*G>H*(I+J)-K
+def A,B,C,D,E : decimal
+A = B + C
+repeat A>B*C do
+	A = B-C
+	B = B+E
+end
+C = A + B
