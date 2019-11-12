@@ -31,16 +31,25 @@
 	</style>
 	<body>
 		<div class="body">
-			<div id="editor">def A,B,C,D,E : decimal
-A = B + C
-repeat A>B*C do
-	A = B-C
-	B = B+E
+			<div id="editor">def d, k, a : decimal
+
+fun hello(k : decimal)
+	repeat k < 100 do
+		k = k + 1
+	end
+	return k-(1+2)*d+a
 end
-C = A + B
+
+fun start()
+	d = hello(d-2)
+end		
 </div>
 			<br>
-			<pre id="result"></pre>
+			<table style="width: 300px;">
+				<tbody id="result">
+					
+				</tbody>
+			</table>
 			<button onclick="parseLanguage()" style="width: 100%">
 				Parse
 			</button>
@@ -54,12 +63,11 @@ C = A + B
 			var code = editor.getValue();
 			try{
 				var res = spook.parse(code);
-				console.log(res);
 				var pretty = "";
-				for(var i of res){
-					pretty += i[0]+','+i[1]+','+i[2]+','+i[3]+'\n';
+				for(var i of res.pretty){
+					pretty += '<tr><td>'+i[0]+'</td><td>'+i[1]+'</td><td>'+i[2]+'</td><td>'+i[3]+'</td></tr>';
 				}
-				document.getElementById('result').innerText = 'CUADRUPLOS: \n' + pretty+'\n';
+				document.getElementById('result').innerHTML = pretty
 			}catch(e){
 				document.getElementById('result').innerText = 'Código invalido';
 				console.log(e)

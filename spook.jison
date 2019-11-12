@@ -32,9 +32,26 @@
 
 		ERA: 16,
 		GOSUB: 17,
-		ENDPROG: 18,
+		ENDPROC: 18,
 		RETURN: 19,
 		PARAM: 20
+	}
+
+	function begin(){
+		QUADS = [];
+		VARS = [];
+		TEMPS = 0;
+		CONST = [];
+		FUNCS = [];
+
+		opStack = [];
+		valStack = [];
+		jumpStack = [];
+		count = 0;
+	}
+
+	function declareStart(){
+		QUADS[0][3] = count;
 	}
 
 	// Executes right after "then"
@@ -59,8 +76,25 @@
 	}
 
 	// Declares a function. After "fun"
-	function delcareFunction(){
-
+	function declareFunction(name, params){
+		if(FUNCS.findIndex(a=>a.name==name)!=-1){
+			//TODO: THROW ERR
+			return;
+		}
+		if(VARS.findIndex(a=>a.name==name)!=-1){
+			//TODO: THROW ERR
+			return;
+		}
+		FUNCS.push({
+			name,
+			params,
+			dir: count
+		});
+		var vardir = VARS.length;
+		VARS.push({
+			name, type: 'func', val: -1, dir: vardir
+		});
+		return FUNCS.length-1;
 	}
 
 	// Declares a repeat. After "repeat"
@@ -83,9 +117,27 @@
 	}
 
 	function functionCall(name, params){
+		var func = FUNCS.find(a=>a.name==name);
+		if(!func){
+			// TODO: THROW ERROR
+			console.log("Invalid function");
+			return;
+		}
+		if(func.params.length!=params.length){
+			// TODO: THROW ERROR
+			console.log("Incorrect params length");
+			return;
+		}
 		addQuad(OPERATIONS.ERA, name, -1, -1);
 		for(var i=0; i<params.length; i++){
 			addQuad(OPERATIONS.PARAM, i, -1, params[i].dir)
+		}
+		addQuad(OPERATIONS.GOTO, -1, -1, func.dir);
+
+		if(func.return){
+			return VARS.find(a=>a.name==name);
+		}else{
+			return { dir: -1 }
 		}
 	}
 
@@ -181,7 +233,7 @@
 		var t = [
 			'+','-','x','/','AND','!=','OR','==','>','<','=', 
 			'GOTO', 'GOTOF', 'GOTOT', 'PRINT',
-			'ERA', 'GOSUB', 'ENDPROG', 'RETURN', 'PARAM'
+			'ERA', 'GOSUB', 'ENDPROC', 'RETURN', 'PARAM'
 		];
 		return t[parseInt(op-1)];
 	}
@@ -194,7 +246,7 @@
 			var v2 = getVariable(i[2]);
 			var v3 = getVariable(i[3]);
 			if(i[0]==OPERATIONS.PARAM){
-				v1 = false;
+				v1 = { name: i[1] };
 				v2 = false;
 			}
 			if(i[0]==OPERATIONS.ERA){
@@ -204,8 +256,8 @@
 			}
 			q.push([
 				opGetSymbol(i[0]),
-				(v1 ? ((v1.temp && v1.val) ? v1.val : v1.name) : -1),
-				(v2 ? ((v2.temp && v2.val) ? v2.val : v2.name) : -1),
+				(v1!==false ? ((v1.temp && v1.val) ? v1.val : v1.name) : -1),
+				(v2!==false ? ((v2.temp && v2.val) ? v2.val : v2.name) : -1),
 				i[0]>=12 && i[0]<=14 ? i[3] : (v3 ? ((v3.temp && v3.val) ? v3.val : v3.name) : -1)
 			])
 		}
@@ -291,12 +343,24 @@
 
 %% /* language grammar */
 
+begin: {
+	begin();
+	addQuad(OPERATIONS.GOTO, -1, -1, null);
+};
+
 start:
-	statements EOF {
+	begin declarations EOF {
 		console.log(QUADS);
 		console.log(prettyQuads());
-		return prettyQuads();
+		return {
+			raw: QUADS,
+			pretty: prettyQuads()
+		};
 	}
+	;
+
+declarations:
+	| declaration declarations
 	;
 
 statements:
@@ -325,22 +389,19 @@ vars:
 	;
 
 assign:
-	NAME postName assignOp expression {
-		$$ = generateQuad();
+	NAME assignOp expression {
+		// console.log($4);
+		var assignVar = getVariableFromName($1);
+		if(!assignVar){
+			// THROW ERROR
+			throw new Error('No such var');
+		}
+		addQuad(OPERATIONS.ASSIGN, $3.dir, -1, assignVar.dir);
 	}
 	| NAME '[' expression ']' ASSIGN expression {
 
 	}
 	;
-
-postName: 
-	{
-		var assignVar = getVariableFromName($1);
-		if(!assignVar){
-			// THROW ERROR
-		}
-		valStack.push(assignVar.dir)
-	};
 
 expression:
 	exp {
@@ -385,8 +446,17 @@ postFactor:
 		}else $$ = false;
 	};
 	
+startP: {
+	opStack.push('(')
+};
+
+endP: {
+	opStack.pop();
+};
+
 factor:
-	'(' expression ')' {
+	'(' startP expression endP ')' {
+
 		$$ = $2;
 	}
 	| '-' val {
@@ -426,7 +496,7 @@ id:
 	}
 	| NAME '(' expressionlist ')' {
 		// FUNCTIONCALL
-		functionCall($1, $3);
+		$$ = functionCall($1, $3);
 	}
 	;
 
@@ -523,18 +593,31 @@ funparams2:
 	;
 
 function:
-	FUNCTION NAME funparams defineFunction statements return expression endFunc
-	| FUNCTION NAME funparams defineFunction statements endFunc
+	declareFunction statements returnFunction endFunc{
+		FUNCS[$1].return = true;
+	}
+	| declareFunction statements endFunc
 	; 
 
-defineFunction: {
-	// param list = $1
+declareFunction: 
+	FUNCTION NAME funparams {
+		if($2=='start'){
+			declareStart();
+		}
+		$$ = declareFunction($2, $3);
+	}
+	;
 
-};
+returnFunction: 
+	RETURN expression{
+		addQuad(OPERATIONS.RETURN, -1, -1, $2.dir);
+		$$ = $2;
+	}
+	;
 
 endFunc: 
 	END {
-
+		addQuad(OPERATIONS.ENDPROC, -1, -1, -1);
 	};
 
 loop:
@@ -552,14 +635,16 @@ endLoop: {
 	endLoop();
 };
 
-
+declaration:
+	vars
+	| function
+	;
 
 statement:
-	vars
-	| assign
+	assign
+	| vars
 	| conditional
 	| actions
-	| function
 	| loop
 	| id
 	;
