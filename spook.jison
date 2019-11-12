@@ -350,11 +350,15 @@ begin: {
 
 start:
 	begin declarations EOF {
-		console.log(QUADS);
+		// console.log(QUADS);
 		console.log(prettyQuads());
 		return {
 			raw: QUADS,
-			pretty: prettyQuads()
+			pretty: prettyQuads(),
+			funcs: FUNCS,
+			vars: VARS,
+			const: CONST,
+			temps: TEMPS
 		};
 	}
 	;

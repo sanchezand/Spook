@@ -2,6 +2,7 @@
 	<head>
 		<title>Spook</title>
 		<script src="spook.js"></script>
+		<script src="SpookVM.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.6/ace.js" integrity="sha256-CVkji/u32aj2TeC+D13f7scFSIfphw2pmu4LaKWMSY8=" crossorigin="anonymous"></script>
 	</head>
 
@@ -45,19 +46,20 @@ fun start()
 end		
 </div>
 			<br>
+			<button onclick="parseLanguage()" style="width: 100%">
+				Parse
+			</button>
 			<table style="width: 300px;">
 				<tbody id="result">
 					
 				</tbody>
 			</table>
-			<button onclick="parseLanguage()" style="width: 100%">
-				Parse
-			</button>
 		</div>
 	</body>
 	<script>
 		var editor = ace.edit("editor");
 		editor.setTheme("ace/theme/monokai");
+		var vm;
 
 		function parseLanguage(){
 			var code = editor.getValue();
@@ -67,6 +69,7 @@ end
 				for(var i of res.pretty){
 					pretty += '<tr><td>'+i[0]+'</td><td>'+i[1]+'</td><td>'+i[2]+'</td><td>'+i[3]+'</td></tr>';
 				}
+				vm = new VM(res.raw, res.vars, res.funcs, res.const, res.temps);
 				document.getElementById('result').innerHTML = pretty
 			}catch(e){
 				document.getElementById('result').innerText = 'Código invalido';
