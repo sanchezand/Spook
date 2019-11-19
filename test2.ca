@@ -1,12 +1,6 @@
-def d, k, a : decimal
-
-fun hello(k : decimal)
-	repeat k < 100 do
-		k = k + 1
-	end
-	return k-(1+2)*d+a
-end
+def a,d,f : decimal[4]
+def g,o,ki : decimal
 
 fun start()
-	d = hello(d-2)
-end				
+	o = ki != (2+4*ki)
+end

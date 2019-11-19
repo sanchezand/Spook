@@ -34,7 +34,13 @@
 		GOSUB: 17,
 		ENDPROC: 18,
 		RETURN: 19,
-		PARAM: 20
+		PARAM: 20,
+		VERIFY: 21,
+
+		MOVE: 22,
+		ROTATE: 23,
+		PICKUP: 24,
+		PUTDOWN: 25
 	}
 
 	function begin(){
@@ -90,7 +96,7 @@
 			params,
 			dir: count
 		});
-		var vardir = VARS.length;
+		var vardir = VARS.reduce((a,b)=>a+b.size, 0);
 		VARS.push({
 			name, type: 'func', val: -1, dir: vardir
 		});
@@ -161,10 +167,12 @@
 
 	// Defines a variable
 	function defineVariable(name, type, size=false){
-		var dir = VARS.length;
+		var dir = VARS.reduce((a,b)=>a+b.size, 0);
 		var newVal = {
-			name, type, val: 0
+			name, type, dir
 		}
+		newVal.array = size ? true : false;
+		newVal.size = (size || 1);
 		VARS.push(newVal);
 		return dir;
 	}
@@ -184,13 +192,27 @@
 				dir,
 				temp: true
 			}
-		}else if(dir>=100000){ // CONSTANT
+		}else if(dir>=100000 && dir<999990){ // CONSTANT
 			return {
 				name: CONST[dir-100000].toString(),
 				val: CONST[dir-10000],
 				dir,
 				constant: true
 			}
+		}else if(dir>999990){
+			var name;
+			switch(dir){
+				case 999990:
+					name = 'INV'
+				break;
+				case 999991:
+					name = 'WALL'
+				break;
+				case 999992:
+					name = 'BOX'
+				break;
+			}
+			return { name, dir }
 		}else{
 			return {
 				...VARS[dir],
@@ -214,26 +236,12 @@
 		return dir3;
 	}
 
-	function solveQuad(quad){
-		var val;
-		var leftVal = getVariable(quad[1]).val;
-		var rightVal = getVariable(quad[2]).val;
-		switch(quad[0]){
-			case 1: return setVariable(quad[3], leftVal + rightVal);
-			case 2: return setVariable(quad[3], leftVal - rightVal);
-			case 3: return setVariable(quad[3], leftVal * rightVal);
-			case 4: return setVariable(quad[3], leftVal / rightVal);
-			case 5: return setVariable(quad[3], leftVal && rightVal);
-			case 6: return setVariable(quad[3], leftVal == rightVal);
-			case 7: return setVariable(quad[3], leftVal);
-		}
-	}
-
 	function opGetSymbol(op){
 		var t = [
 			'+','-','x','/','AND','!=','OR','==','>','<','=', 
 			'GOTO', 'GOTOF', 'GOTOT', 'PRINT',
-			'ERA', 'GOSUB', 'ENDPROC', 'RETURN', 'PARAM'
+			'ERA', 'GOSUB', 'ENDPROC', 'RETURN', 'PARAM', 'VERIFY',
+			'MOVE', 'ROT', 'PKUP', 'PDWN'
 		];
 		return t[parseInt(op-1)];
 	}
@@ -254,11 +262,18 @@
 				v2 = false;
 				v3 = false;
 			}
+
+			
+			var v4 = i[0]>=12 && i[0]<=14 ? i[3] : (v3 ? ((v3.temp && v3.val) ? v3.val : v3.name) : -1);
+			if(i[0]==OPERATIONS.VERIFY){
+				v2 = { name: i[2] };
+				v4 = i[3];
+			}
 			q.push([
 				opGetSymbol(i[0]),
 				(v1!==false ? ((v1.temp && v1.val) ? v1.val : v1.name) : -1),
 				(v2!==false ? ((v2.temp && v2.val) ? v2.val : v2.name) : -1),
-				i[0]>=12 && i[0]<=14 ? i[3] : (v3 ? ((v3.temp && v3.val) ? v3.val : v3.name) : -1)
+				v4
 			])
 		}
 		return q;
@@ -303,7 +318,6 @@
 ","						 		return ','
 ":"						 		return ':'
 "["						 		return '['
-"="								return 'ASSIGN'
 "]"						 		return ']'
 "decimal"						return 'DECIMAL'
 "bool"						 	return 'BOOL'
@@ -311,9 +325,9 @@
 "=="								return 'EQUALS'
 ">"								return 'GTRTHN'
 "<"								return 'LESTHN'
-"(not|NOT)"						return 'NOT'
-"(and|AND)"						return 'AND'
-"(or|OR)"						return 'OR'
+(not|NOT|\!\=)					return 'NOT'
+(and|AND|\&\&)					return 'AND'
+(or|OR|\|\|)					return 'OR'
 
 "if"								return 'IF'
 "then"							return 'THEN'
@@ -333,6 +347,7 @@
 "inventory"						return 'INVENTORY'
 [0-9]+("."[0-9]+)?\b  		return 'NUMBER'
 [a-zA-Z][a-zA-Z_]*			return 'NAME'
+"="								return 'ASSIGN'
 <<EOF>>							return 'EOF'
 
 /lex
@@ -394,28 +409,43 @@ vars:
 
 assign:
 	NAME assignOp expression {
-		// console.log($4);
 		var assignVar = getVariableFromName($1);
 		if(!assignVar){
 			// THROW ERROR
 			throw new Error('No such var');
 		}
+		if(assignVar.array){
+			// THROW ERROR
+			throw new Error('Var is array');
+		}
 		addQuad(OPERATIONS.ASSIGN, $3.dir, -1, assignVar.dir);
 	}
 	| NAME '[' expression ']' ASSIGN expression {
-
+		var assignVar = getVariableFromName($1);
+		if(!assignVar){
+			// THROW ERROR
+			throw new Error('No such var');
+		}
+		if(!assignVar.array){
+			// THROW ERROR
+			throw new Error('Var is not array');
+		}
+		var t = addTemp();
+		addQuad(OPERATIONS.VERIFY, $3.dir, 0, assignVar.size-1);
+		addQuad(OPERATIONS.SUM, $3.dir, assignVar.dir, t);
+		addQuad(OPERATIONS.ASSIGN, $6.dir, -1, t);
 	}
 	;
 
 expression:
-	exp {
+	exp compOp exp{
+		var temp = addTemp();
+		$$ = addQuad($2, $1.dir, $3.dir, temp);
+		valStack.push(temp);
 		$$ = { dir: valStack[valStack.length-1] };
 	}
-	| exp compOp exp{
-		// var temp = addTemp();
-		// addQuad($2, $1.dir, $3.dir, temp);
-		// $$ = temp;
-		$$ = generateQuad();
+	| exp {
+		$$ = { dir: valStack[valStack.length-1] };
 	}
 	;
 
@@ -423,8 +453,7 @@ exp:
 	termino postTermino {
 		$$ = ($2 || $1)
 	}
-	| termino postTermino addSub exp {
-	}
+	| termino postTermino addSub exp
 	;
 
 postTermino: 
@@ -438,9 +467,7 @@ termino:
 	factor postFactor {
 		$$ = ($2 || $1)
 	}
-	| factor postFactor multDiv termino {
-		
-	}
+	| factor postFactor multDiv termino
 	;
 
 postFactor: 
@@ -460,8 +487,7 @@ endP: {
 
 factor:
 	'(' startP expression endP ')' {
-
-		$$ = $2;
+		$$ = $3;
 	}
 	| '-' val {
 		CONST[$2.dir-100000] = CONST[$2.dir-100000] * -1;
@@ -490,16 +516,22 @@ id:
 		$$ = val;
 	}
 	| NAME '[' expression ']' {
-		// var val = getVariableFromName($1);
-		// var valFromArray = {
-		// 	dir: val.dir,
-		// 	index: parseInt($3),
-		// 	val: val.val[parseInt($3)]
-		// }
-		// $$ = valFromArray;
+		var val = getVariableFromName($1);
+		if(!val){
+			// THROW ERROR
+			throw new Error('No such var');
+		}
+		if(!val.array){
+			// THROW ERROR
+			throw new Error('Var is not array');
+		}
+		var t = addTemp();
+		addQuad(OPERATIONS.VERIFY, $3.dir, 0, val.size-1);
+		addQuad(OPERATIONS.SUM, $3.dir, val.dir, t);
+		$$ = { dir: t }
 	}
+	| queries
 	| NAME '(' expressionlist ')' {
-		// FUNCTIONCALL
 		$$ = functionCall($1, $3);
 	}
 	;
@@ -547,28 +579,28 @@ elseIf: {
 
 actions:
 	FORWARD '(' ')'{
-		// yy.moves.push(0);
+		addQuad(OPERATIONS.MOVE, -1, -1, -1);
 	}
 	| ROTRIGHT '(' ')'{
-		// yy.moves.push(1);
+		addQuad(OPERATIONS.ROTATE, -1, -1, -1);
 	}
 	| PICKUP '(' ')'{
-		// yy.moves.push(2);
+		addQuad(OPERATIONS.PICKUP, -1, -1, -1);
 	}
 	| PUTDOWN '(' ')'{
-		// yy.moves.push(3);
+		addQuad(OPERATIONS.PUTDOWN, -1, -1, -1);
 	}
-	| DETECT_BOX '(' ')'{
-		
+	;
+
+queries:
+	DETECT_BOX '(' ')'{
+		$$ = { dir: 999992 }
 	}
 	| DETECT_WALL '(' ')'{
-
+		$$ = { dir: 999991 }
 	}
 	| INVENTORY '(' ')'{
-		
-	}
-	| OUT '(' expression ')'{
-		console.log($3)
+		$$ = { dir: 999990 }
 	}
 	;
 
@@ -648,9 +680,9 @@ statement:
 	assign
 	| vars
 	| conditional
-	| actions
 	| loop
 	| id
+	| actions
 	;
 
 type:
