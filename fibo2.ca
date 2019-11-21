@@ -1,0 +1,16 @@
+def fib : decimal[24]
+def i : decimal
+
+fun fibonacci(n:decimal)
+	i = 2
+	while i<24 do
+		fib[i] = fib[i-1] + fib[i-2]
+		i = i+1
+	end 
+end
+
+fun start()
+	fib[0] = 0
+	fib[1] = 1
+	print(fibonacci(9))
+end

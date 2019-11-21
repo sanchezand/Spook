@@ -166,7 +166,6 @@ case 10:
 break;
 case 11:
 
-		console.log("LA");
 		var temp = addTemp();
 		this.$ = addQuad($$[$0-1], $$[$0-2].dir, $$[$0].dir, temp);
 		valStack.push(temp);
@@ -254,8 +253,8 @@ case 28:
 		}
 		var t = addTemp();
 		addQuad(OPERATIONS.VERIFY, $$[$0-1].dir, 0, val.size-1);
-		addQuad(OPERATIONS.SUM, $$[$0-1].dir, addConstant(val.dir), t+1000000);
-		this.$ = { dir: t }
+		addQuad(OPERATIONS.SUM, $$[$0-1].dir, addConstant(val.dir), t);
+		this.$ = { dir: t+1000000 }
 	
 break;
 case 30:
