@@ -86,7 +86,8 @@ switch (yystate) {
 case 1:
 
 	begin();
-	addQuad(OPERATIONS.GOTO, -1, -1, null);
+	addQuad(OPERATIONS.ERA, 'start', -1, -1);
+	addQuad(OPERATIONS.GOSUB, -1, -1, null);
 
 break;
 case 2:
@@ -97,7 +98,6 @@ case 2:
 		// }
 		// // console.log(FUNCS);
 		// // console.log(QUADS);
-		console.log(CONST);
 		var j = 0;
 		for(var i of prettyQuads()){
 			console.log(`${j}:\t ${i[0]}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
@@ -731,8 +731,8 @@ parse: function parse(input) {
 	}
 
 	function declareStart(){
-		if(QUADS[0][3]!=null) return;
-		QUADS[0][3] = count;
+		if(QUADS[1][3]!=null) return;
+		QUADS[1][3] = count;
 	}
 
 	// Executes right after "then"
@@ -775,7 +775,8 @@ parse: function parse(input) {
 			name,
 			params,
 			vars,
-			dir: count
+			dir: count,
+			start: name=='start'
 		});
 		currFunc = FUNCS.length-1;
 		VARS.push({

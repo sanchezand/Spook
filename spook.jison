@@ -64,8 +64,8 @@
 	}
 
 	function declareStart(){
-		if(QUADS[0][3]!=null) return;
-		QUADS[0][3] = count;
+		if(QUADS[1][3]!=null) return;
+		QUADS[1][3] = count;
 	}
 
 	// Executes right after "then"
@@ -108,7 +108,8 @@
 			name,
 			params,
 			vars,
-			dir: count
+			dir: count,
+			start: name=='start'
 		});
 		currFunc = FUNCS.length-1;
 		VARS.push({
@@ -403,7 +404,8 @@
 
 begin: {
 	begin();
-	addQuad(OPERATIONS.GOTO, -1, -1, null);
+	addQuad(OPERATIONS.ERA, 'start', -1, -1);
+	addQuad(OPERATIONS.GOSUB, -1, -1, null);
 };
 
 start:

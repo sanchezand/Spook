@@ -53,6 +53,7 @@ class VM {
 		this.funcStack = [];
 		this.error = false;
 		this.moves = [];
+		this.output = [];
 
 		// STACKS
 		this.jumps = [];
@@ -77,18 +78,6 @@ class VM {
 		// this.doQuads();
 	}
 
-	currentFunc(){
-		return this.funcStack.length==0 ? -1 : this.funcStack[this.funcStack.length-1];
-	}
-
-	getFunctionMemory(){
-		return this
-	}
-
-	getMoves(){
-		return this.moves;
-	}
-
 	doQuads(){
 		this.cursor = -1;
 		console.log("QUADS =================")
@@ -100,9 +89,10 @@ class VM {
 			this.executeQuad(q);
 			if(this.error){
 				console.log("ERR");
-				return;
+				break;
 			}
 		}
+		
 		console.log("========================");
 		for(var i of this.vars){
 			if(i.function)continue;
@@ -117,13 +107,27 @@ class VM {
 		for(var i=0; i<this.temps.length; i++){
 			console.log('t'+i, '=', this.temps[i]);
 		}
+
+		return this.output;
+	}
+
+	currentFunc(){
+		return this.funcStack.length==0 ? -1 : this.funcStack[this.funcStack.length-1];
+	}
+
+	getFunctionMemory(){
+		return this
+	}
+
+	getMoves(){
+		return this.moves;
 	}
 
 	setMemory(dir, val){
 		if(dir>=10000 && dir<20000){ // FUNCTION VAR
 			var mem = this.funcs[this.currentFunc()].memory.length-1;
-			var variable = this.funcs[this.currentFunc()].memory[mem].findIndex(a=>a.dir==dir);
-			this.funcs[this.currentFunc()].memory[mem][variable] = val;
+			this.funcs[this.currentFunc()].memory[mem][dir-10000] = val;
+			// this.funcs[this.currentFunc()].memory[mem][variable] = val;
 			// Not proud of this.
 		}else if(dir>=20000 && dir<100000){ // TEMP
 			this.temps[dir-20000] = val;
@@ -141,9 +145,11 @@ class VM {
 
 	getMemory(dir){
 		if(dir>=10000 && dir<20000){ // FUNCTION VAR
-			var mem = this.funcs[this.currentFunc()].memory;
-			var variable = mem[mem.length-1][dir-10000];
-			return variable;
+			var fn = this.funcs[this.currentFunc()];
+			var var_memory = fn.memory[fn.memory.length-1][dir-10000];
+			return {
+				val: var_memory
+			};
 		}else if(dir>=20000 && dir<100000){ // TEMP
 			return {
 				name: 't'+(dir-20000),
@@ -189,15 +195,12 @@ class VM {
 				this.cursor = q4-1;
 				break;
 			case OPERATIONS.RETURN:
+				var fn = this.funcs[this.currentFunc()]
 				this.funcs[this.currentFunc()].return_values.push(q4);
 				break;
 			case OPERATIONS.GOSUB:
 				this.jumps.push(this.cursor);
 				this.cursor = q4-1;
-				break;
-			case OPERATIONS.ENDPROC:
-				this.funcStack.pop();
-				this.cursor = this.jumps.pop();
 				break;
 
 
@@ -245,7 +248,8 @@ class VM {
 
 			// ARITMETIC OPERATIONS
 			case OPERATIONS.SUM:
-				this.setMemory(q4, this.getMemory(q2).val+this.getMemory(q3).val);
+				// console.log(this.getMemory(q2).val, '+', this.getMemory(q3).val)
+				this.setMemory(q4, this.getMemory(q2).val + this.getMemory(q3).val);
 				break;
 			case OPERATIONS.MINUS:
 				this.setMemory(q4, this.getMemory(q2).val-this.getMemory(q3).val);
@@ -259,7 +263,8 @@ class VM {
 			case OPERATIONS.ASSIGN:
 				if(isNaN(q2)){
 					var fn = this.funcs.find(a=>a.name==q2);
-					var mem = this.getMemory(fn.return_values.pop());
+					var dir = fn.return_values.pop();
+					var mem = this.getMemory(dir);
 					this.setMemory(q4, mem.val);
 				}else{
 					this.setMemory(q4, this.getMemory(q2).val)
@@ -271,11 +276,17 @@ class VM {
 			// FUNCTIONS
 			case OPERATIONS.ERA:
 				var fx = this.funcs.findIndex(a=>a.name==q2)
-				this.funcs[fx].memory.push(this.funcs[fx].vars);
+				this.funcs[fx].memory.push(new Array(this.funcs[fx].vars.reduce((a,b)=>a+b.size, 0)));
 				this.funcStack.push(fx);
 				break;
 			case OPERATIONS.PARAM:
-				this.funcs[this.currentFunc()].memory[this.funcs[this.currentFunc()].memory.length-1][q2].val = this.getMemory(q4).val;
+				this.funcs[this.currentFunc()].memory[this.funcs[this.currentFunc()].memory.length-1][q2] = this.getMemory(q4).val;
+				break;
+			case OPERATIONS.ENDPROC:
+				var func = this.funcStack.pop();
+				this.funcs[func].memory.pop();
+				if(this.funcs[func].start) return;
+				this.cursor = this.jumps.pop();
 				break;
 
 
@@ -283,6 +294,7 @@ class VM {
 			// SPECIAL FUNCTIONS
 			case OPERATIONS.PRINT:
 				console.log("PRINT", this.getMemory(q4).val)
+				this.output.push(this.getMemory(q4).val);
 				break;
 			case OPERATIONS.VERIFY:
 				var val = this.getMemory(q2).val;
