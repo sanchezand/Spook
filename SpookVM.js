@@ -52,6 +52,7 @@ class VM {
 		this.const = constants
 		this.funcStack = [];
 		this.error = false;
+		this.moves = [];
 
 		// STACKS
 		this.jumps = [];
@@ -84,6 +85,10 @@ class VM {
 		return this
 	}
 
+	getMoves(){
+		return this.moves;
+	}
+
 	doQuads(){
 		this.cursor = -1;
 		console.log("QUADS =================")
@@ -100,7 +105,7 @@ class VM {
 		}
 		console.log("========================");
 		for(var i of this.vars){
-			if(i.name=='start')continue;
+			if(i.function)continue;
 			if(i.array){
 				console.log(i.name, '=', this.memory.slice(i.dir, i.dir+i.size))
 			}else{
@@ -108,6 +113,7 @@ class VM {
 			}
 		}
 		console.log("");
+		console.log(this.const);
 		for(var i=0; i<this.temps.length; i++){
 			console.log('t'+i, '=', this.temps[i]);
 		}
@@ -296,12 +302,16 @@ class VM {
 
 			// ROBOT FUNCTIONS
 			case OPERATIONS.MOVE:
+				this.moves.push(0);
 				break;
 			case OPERATIONS.ROTATE:
+				this.moves.push(1);
 				break;
 			case OPERATIONS.PICKUP:
+				this.moves.push(2);
 				break;
 			case OPERATIONS.PUTDOWN:
+				this.moves.push(3);
 				break;
 		}
 	}

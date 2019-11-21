@@ -579,8 +579,8 @@ id:
 		}
 		var t = addTemp();
 		addQuad(OPERATIONS.VERIFY, $3.dir, 0, val.size-1);
-		addQuad(OPERATIONS.SUM, $3.dir, addConstant(val.dir), t+1000000);
-		$$ = { dir: t }
+		addQuad(OPERATIONS.SUM, $3.dir, addConstant(val.dir), t);
+		$$ = { dir: t+1000000 }
 	}
 	| queries
 	| NAME '(' expressionlist ')' {
