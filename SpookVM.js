@@ -51,17 +51,27 @@ class VM {
 		this.funcs = funcs;
 		this.const = constants
 		this.funcStack = [];
+		this.error = false;
 
 		// STACKS
 		this.jumps = [];
 
 		// MEMORY
 		this.temps = new Array(parseInt(temps));
+		this.memory = new Array(this.vars.reduce((a,b)=>a+(b.size || 0), 0));
 
 		for(var i of this.funcs){
 			i.memory = [];
 			i.return_values = [];
 		}
+
+		// for(var i of this.vars){
+		// 	if(i.array){
+		// 		i.val = new Array(parseInt(i.size));
+		// 	}else{
+		// 		i.val = -1;
+		// 	}
+		// }
 
 		// this.doQuads();
 	}
@@ -83,12 +93,21 @@ class VM {
 			if(!q) break;
 			console.log(`${this.cursor}:\t ${opGetSymbol(q[0])}\t${q[1]}\t${q[2]}\t${q[3]}\t`)
 			this.executeQuad(q);
+			if(this.error){
+				console.log("ERR");
+				return;
+			}
 		}
-
-		console.log("=======");
+		console.log("========================");
 		for(var i of this.vars){
-			console.log(i.name, '=', i.val);
+			if(i.name=='start')continue;
+			if(i.array){
+				console.log(i.name, '=', this.memory.slice(i.dir, i.dir+i.size))
+			}else{
+				console.log(i.name, '=', this.memory[i.dir])
+			}
 		}
+		console.log("");
 		for(var i=0; i<this.temps.length; i++){
 			console.log('t'+i, '=', this.temps[i]);
 		}
@@ -105,10 +124,12 @@ class VM {
 			return;
 		}else if(dir>=100000 && dir<999990){ // CONSTANT
 			return;
-		}else if(dir>999990){ // SPECIALS
+		}else if(dir>999990 && dir<1000000){ // SPECIALS
 			return;
+		}else if(dir>=1000000){
+			this.memory[this.getMemory(dir-1000000).val] = val;
 		}else{
-			this.vars[dir].val = val;
+			this.memory[dir] = val;
 		}
 	}
 
@@ -131,7 +152,7 @@ class VM {
 				dir,
 				constant: true
 			}
-		}else if(dir>999990){ // SPECIALS
+		}else if(dir>999990 && dir<1000000){ // SPECIALS
 			switch(dir){
 				case 999990: // INVENTORY
 					return { val: 0, dir };
@@ -140,9 +161,11 @@ class VM {
 				case 999992: // CHECK BOX
 					return { val: false, dir };
 			}
+		}else if(dir>=1000000){
+			return this.getMemory(this.temps[dir-1020000]);
 		}else{
 			return {
-				...this.vars[dir],
+				val: this.memory[dir],
 				dir
 			}
 		}
@@ -233,7 +256,6 @@ class VM {
 					var mem = this.getMemory(fn.return_values.pop());
 					this.setMemory(q4, mem.val);
 				}else{
-					console.log
 					this.setMemory(q4, this.getMemory(q2).val)
 				}
 				break;
@@ -257,17 +279,22 @@ class VM {
 				console.log("PRINT", this.getMemory(q4).val)
 				break;
 			case OPERATIONS.VERIFY:
-				
+				var val = this.getMemory(q2).val;
+				if(val<q3 || val>q4){
+					this.error = true;
+				}
 				break;
 			case OPERATIONS.LENGTH:
+				this.setMemory(q4, this.vars[q2].size);
 				break;
 			case OPERATIONS.VALDIR:
+				// var dir = this.getMemory(q2).val;
+				this.setMemory(q4, this.getMemory(q2).val);
 				break;
 
 			
 
 			// ROBOT FUNCTIONS
-
 			case OPERATIONS.MOVE:
 				break;
 			case OPERATIONS.ROTATE:
