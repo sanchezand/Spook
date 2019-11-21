@@ -1,0 +1,14 @@
+def d : decimal
+fun fibonacci(n:decimal)
+	print(n)
+	if n<10 then
+		fibonacci(n + 1)
+	else
+		print(-1)
+	end
+end
+
+
+fun start()
+	fibonacci(1)
+end

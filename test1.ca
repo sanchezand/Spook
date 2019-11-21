@@ -1,7 +1,0 @@
-def A,B,C,D,E : decimal
-A = B + C
-repeat A>B*C do
-	A = B-C
-	B = B+E
-end
-C = A + B
