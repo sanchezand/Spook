@@ -240,7 +240,9 @@
 			}
 			return { name, dir }
 		}else if(dir>=1000000){
-			
+			var v = getVariable(dir-1000000);;
+			v.name = '(' + v.name + ')';
+			return v;
 		}else{
 			return {
 				...VARS[dir],
@@ -300,7 +302,7 @@
 				v3 = false;
 			}
 
-			
+
 			var v4 = i[0]>=12 && i[0]<=14 ? i[3] : (v3 ? ((v3.temp && v3.val) ? v3.val : v3.name) : -1);
 			if(i[0]==OPERATIONS.VERIFY){
 				v2 = { name: i[2] };
@@ -395,11 +397,9 @@
 
 /lex
 
-/* operator associations and precedence */
-
 %start start
 
-%% /* language grammar */
+%%
 
 begin: {
 	begin();
@@ -541,17 +541,17 @@ factor:
 	'(' startP expression endP ')' {
 		$$ = $3;
 	}
-	| '-' val {
-		CONST[$2.dir-100000] = CONST[$2.dir-100000] * -1;
-		$$ = $2;
-	}
 	| val {
 		valStack.push($1.dir);
 	}
 	;
 
 val:
-	NUMBER {
+	'-' NUMBER {
+		var dir = addConstant(-1*$2);
+		$$ = { dir }
+	}
+	| NUMBER {
 		var dir = addConstant(parseFloat($1));
 		$$ = { dir };
 	}
