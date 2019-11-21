@@ -225,7 +225,7 @@
 				dir,
 				constant: true
 			}
-		}else if(dir>999990){ // SPECIALS
+		}else if(dir>999990 && dir<1000000){ // SPECIALS
 			var name;
 			switch(dir){
 				case 999990: // INVENTORY
@@ -239,6 +239,8 @@
 				break;
 			}
 			return { name, dir }
+		}else if(dir>=1000000){
+			
 		}else{
 			return {
 				...VARS[dir],
@@ -373,7 +375,7 @@
 "then"							return 'THEN'
 "end"								return 'END'
 "fun"								return 'FUNCTION'
-"repeat"							return 'REPEAT'
+"while"							return 'REPEAT'
 "do"								return 'DO'
 
 "return"							return 'RETURN'
@@ -412,11 +414,11 @@ start:
 		// }
 		// // console.log(FUNCS);
 		// // console.log(QUADS);
-		// var j = 0;
-		// for(var i of prettyQuads()){
-		// 	console.log(`${j}:\t ${i[0]}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
-		// 	j++;
-		// }
+		var j = 0;
+		for(var i of prettyQuads()){
+			console.log(`${j}:\t ${i[0]}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
+			j++;
+		}
 		return {
 			quads: QUADS,
 			pretty: prettyQuads(),
@@ -483,9 +485,7 @@ assign:
 		var t = addTemp();
 		addQuad(OPERATIONS.VERIFY, $3.dir, 0, assignVar.size-1);
 		addQuad(OPERATIONS.SUM, $3.dir, addConstant(assignVar.dir), t);
-		var t2 = addTemp();
-		addQuad(OPERATIONS.VALDIR, t, -1, t2)
-		addQuad(OPERATIONS.ASSIGN, $6.dir, -1, t2);
+		addQuad(OPERATIONS.ASSIGN, $6.dir, -1, t+1000000);
 	}
 	;
 
@@ -579,10 +579,8 @@ id:
 		}
 		var t = addTemp();
 		addQuad(OPERATIONS.VERIFY, $3.dir, 0, val.size-1);
-		addQuad(OPERATIONS.SUM, $3.dir, addConstant(val.dir), t);
-		var t2 = addTemp();
-		addQuad(OPERATIONS.VALDIR, t, -1, t2)
-		$$ = { dir: t2 }
+		addQuad(OPERATIONS.SUM, $3.dir, addConstant(val.dir), t+1000000);
+		$$ = { dir: t }
 	}
 	| queries
 	| NAME '(' expressionlist ')' {

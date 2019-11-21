@@ -91,12 +91,12 @@ case 1:
 break;
 case 2:
 
-		console.log(VARS);
-		for(var i of FUNCS){
-			console.log(i.name, i.vars);
-		}
-		// console.log(FUNCS);
-		// console.log(QUADS);
+		// console.log(VARS);
+		// for(var i of FUNCS){
+		// 	console.log(i.name, i.vars);
+		// }
+		// // console.log(FUNCS);
+		// // console.log(QUADS);
 		var j = 0;
 		for(var i of prettyQuads()){
 			console.log(`${j}:\t ${i[0]}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
@@ -136,7 +136,6 @@ break;
 case 9:
 
 		var assignVar = getVariableFromName($$[$0-2]);
-		console.log(assignVar);
 		if(!assignVar){
 			// THROW ERROR
 			throw new Error('No such var '+$$[$0-2] + ' - LINE: '+_$[$0-2].first_line);
@@ -162,13 +161,12 @@ case 10:
 		var t = addTemp();
 		addQuad(OPERATIONS.VERIFY, $$[$0-3].dir, 0, assignVar.size-1);
 		addQuad(OPERATIONS.SUM, $$[$0-3].dir, addConstant(assignVar.dir), t);
-		var t2 = addTemp();
-		addQuad(OPERATIONS.VALDIR, t, -1, t2)
-		addQuad(OPERATIONS.ASSIGN, $$[$0].dir, -1, t2);
+		addQuad(OPERATIONS.ASSIGN, $$[$0].dir, -1, t+1000000);
 	
 break;
 case 11:
 
+		console.log("LA");
 		var temp = addTemp();
 		this.$ = addQuad($$[$0-1], $$[$0-2].dir, $$[$0].dir, temp);
 		valStack.push(temp);
@@ -256,10 +254,8 @@ case 28:
 		}
 		var t = addTemp();
 		addQuad(OPERATIONS.VERIFY, $$[$0-1].dir, 0, val.size-1);
-		addQuad(OPERATIONS.SUM, $$[$0-1].dir, addConstant(val.dir), t);
-		var t2 = addTemp();
-		addQuad(OPERATIONS.VALDIR, t, -1, t2)
-		this.$ = { dir: t2 }
+		addQuad(OPERATIONS.SUM, $$[$0-1].dir, addConstant(val.dir), t+1000000);
+		this.$ = { dir: t }
 	
 break;
 case 30:
@@ -896,7 +892,7 @@ parse: function parse(input) {
 				dir,
 				constant: true
 			}
-		}else if(dir>999990){ // SPECIALS
+		}else if(dir>999990 && dir<1000000){ // SPECIALS
 			var name;
 			switch(dir){
 				case 999990: // INVENTORY
@@ -910,6 +906,8 @@ parse: function parse(input) {
 				break;
 			}
 			return { name, dir }
+		}else if(dir>=1000000){
+			
 		}else{
 			return {
 				...VARS[dir],
@@ -1425,7 +1423,7 @@ case 43:return 6
 break;
 }
 },
-rules: [/^(?:\s+)/,/^(?:(true|false))/,/^(?:def\b)/,/^(?:\*)/,/^(?:\/)/,/^(?:-)/,/^(?:\+)/,/^(?:\()/,/^(?:\))/,/^(?:,)/,/^(?::)/,/^(?:\[)/,/^(?:\])/,/^(?:decimal\b)/,/^(?:bool\b)/,/^(?:else\b)/,/^(?:==)/,/^(?:>=)/,/^(?:<=)/,/^(?:>)/,/^(?:<)/,/^(?:(not|NOT|!=))/,/^(?:(and|AND|&&))/,/^(?:(or|OR|\|\|))/,/^(?:if\b)/,/^(?:then\b)/,/^(?:end\b)/,/^(?:fun\b)/,/^(?:repeat\b)/,/^(?:do\b)/,/^(?:return\b)/,/^(?:print\b)/,/^(?:length\b)/,/^(?:forward\b)/,/^(?:rotateRight\b)/,/^(?:pickUp\b)/,/^(?:putDown\b)/,/^(?:detectBox\b)/,/^(?:detectWall\b)/,/^(?:inventory\b)/,/^(?:[0-9]+(\.[0-9]+)?\b)/,/^(?:[a-zA-Z][a-zA-Z_]*)/,/^(?:=)/,/^(?:$)/],
+rules: [/^(?:\s+)/,/^(?:(true|false))/,/^(?:def\b)/,/^(?:\*)/,/^(?:\/)/,/^(?:-)/,/^(?:\+)/,/^(?:\()/,/^(?:\))/,/^(?:,)/,/^(?::)/,/^(?:\[)/,/^(?:\])/,/^(?:decimal\b)/,/^(?:bool\b)/,/^(?:else\b)/,/^(?:==)/,/^(?:>=)/,/^(?:<=)/,/^(?:>)/,/^(?:<)/,/^(?:(not|NOT|!=))/,/^(?:(and|AND|&&))/,/^(?:(or|OR|\|\|))/,/^(?:if\b)/,/^(?:then\b)/,/^(?:end\b)/,/^(?:fun\b)/,/^(?:while\b)/,/^(?:do\b)/,/^(?:return\b)/,/^(?:print\b)/,/^(?:length\b)/,/^(?:forward\b)/,/^(?:rotateRight\b)/,/^(?:pickUp\b)/,/^(?:putDown\b)/,/^(?:detectBox\b)/,/^(?:detectWall\b)/,/^(?:inventory\b)/,/^(?:[0-9]+(\.[0-9]+)?\b)/,/^(?:[a-zA-Z][a-zA-Z_]*)/,/^(?:=)/,/^(?:$)/],
 conditions: {"INITIAL":{"rules":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43],"inclusive":true}}
 });
 return lexer;
