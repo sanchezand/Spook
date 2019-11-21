@@ -4,7 +4,8 @@
 	"description": "Compiler written in Javascript that controls a robot.",
 	"main": "spook.js",
 	"scripts": {
-		"test": "jison spook.jison && node spook.js test2.ca"
+		"compile": "jison spook.jison && node spook.js test2.ca",
+		"test": "node test.js"
 	},
 	"repository": {
 		"type": "git",
