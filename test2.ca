@@ -1,6 +1,9 @@
-def a,d,f : decimal[4]
-def g,o,ki : decimal
+def a,b : decimal
 
 fun start()
-	o = ki != (2+4*ki)
+	a = 2
+	b = 2
+	if(a==b) then
+		print(a)
+	end
 end
