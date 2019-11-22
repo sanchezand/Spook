@@ -270,6 +270,7 @@
 	}
 
 	function addQuad(opCode, dir1, dir2, dir3){
+		// console.log(`${count}:\t ${opGetSymbol(opCode)}\t${dir1}\t${dir2}\t${dir3}\t`)
 		QUADS.push([opCode, dir1, dir2, dir3]);
 		count += 1;
 		return dir3;
@@ -336,7 +337,6 @@
 		}else{
 			temp = addTemp();
 		}
-
 		addQuad(peek, peek==OPERATIONS.ASSIGN ? valDer : valIz, peek==OPERATIONS.ASSIGN ? -1 : valDer, temp)
 		valStack.push(temp);
 		return { dir: temp }
@@ -474,20 +474,19 @@ assign:
 		}
 		addQuad(OPERATIONS.ASSIGN, $3.dir, -1, assignVar.dir);
 	}
-	| NAME '[' expression ']' ASSIGN expression {
+	| NAME '[' startP expression endP ']' assignOp expression {
 		var assignVar = getVariableFromName($1);
 		if(!assignVar){
-			// THROW ERROR
 			throw new Error('No such var '+$1 + ' - LINE: '+@1.first_line);
 		}
 		if(!assignVar.array){
-			// THROW ERROR
 			throw new Error('Var is not array '+assignVar.name + ' - LINE: '+@1.first_line);
 		}
 		var t = addTemp();
-		addQuad(OPERATIONS.VERIFY, $3.dir, 0, assignVar.size-1);
-		addQuad(OPERATIONS.SUM, $3.dir, addConstant(assignVar.dir), t);
-		addQuad(OPERATIONS.ASSIGN, $6.dir, -1, t+1000000);
+		addQuad(OPERATIONS.VERIFY, $4.dir, 0, assignVar.size-1);
+		addQuad(OPERATIONS.SUM, $4.dir, addConstant(assignVar.dir), t);
+		valStack.pop();
+		addQuad(OPERATIONS.ASSIGN, $8.dir, -1, t+1000000);
 	}
 	;
 
@@ -536,7 +535,10 @@ startP: {
 };
 
 endP: {
-	opStack.pop();
+	var p = opStack.pop();
+	if(p!='('){
+		throw new Error('Popped was not ( - ' + p);
+	}
 };
 
 factor:
@@ -565,11 +567,7 @@ val:
 	;
 	
 id:
-	NAME {
-		var val = getVariableFromName($1);
-		$$ = val;
-	}
-	| NAME '[' expression ']' {
+	NAME '[' startP expression endP ']' {
 		var val = getVariableFromName($1);
 		if(!val){
 			// THROW ERROR
@@ -580,9 +578,14 @@ id:
 			throw new Error('Var is not array');
 		}
 		var t = addTemp();
-		addQuad(OPERATIONS.VERIFY, $3.dir, 0, val.size-1);
-		addQuad(OPERATIONS.SUM, $3.dir, addConstant(val.dir), t);
+		addQuad(OPERATIONS.VERIFY, $4.dir, 0, val.size-1);
+		addQuad(OPERATIONS.SUM, $4.dir, addConstant(val.dir), t);
+		valStack.pop();
 		$$ = { dir: t+1000000 }
+	}
+	| NAME {
+		var val = getVariableFromName($1);
+		$$ = val;
 	}
 	| queries
 	| NAME '(' expressionlist ')' {
@@ -697,7 +700,6 @@ funparams1:
 	}
 	| NAME ':' type '[' NUMBER ']' funparams2 {
 		$$ = [ { name: $1, type: $3, array: true, size: $5 }, ...$7 ]
-
 	}
 	;
 
