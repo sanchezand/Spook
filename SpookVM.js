@@ -51,6 +51,7 @@ class VM {
 		this.funcs = funcs;
 		this.const = constants
 		this.funcStack = [];
+		this.prepareFunction = -1;
 		this.error = false;
 		this.moves = [];
 		this.output = [];
@@ -80,7 +81,7 @@ class VM {
 
 	doQuads(){
 		this.cursor = -1;
-		console.log("QUADS =================")
+		console.log("\n\n=============== QUADS ================\n");
 		while(this.cursor<this.quads.length){
 			this.cursor++;
 			var q = this.quads[this.cursor];
@@ -88,7 +89,7 @@ class VM {
 			console.log(`${this.cursor}:\t ${opGetSymbol(q[0])}\t${q[1]}\t${q[2]}\t${q[3]}\t`)
 			this.executeQuad(q);
 			if(this.error){
-				console.log("ERR");
+				console.log("\n\n=============== ERROR ================");
 				break;
 			}
 		}
@@ -111,8 +112,8 @@ class VM {
 		return this.output;
 	}
 
-	currentFunc(){
-		return this.funcStack.length==0 ? -1 : this.funcStack[this.funcStack.length-1];
+	currentFunc(offset=0){
+		return this.funcStack.length==0 ? -1 : this.funcStack[this.funcStack.length-1-offset];
 	}
 
 	getFunctionMemory(){
@@ -137,7 +138,7 @@ class VM {
 		}else if(dir>999990 && dir<1000000){ // SPECIALS
 			return;
 		}else if(dir>=1000000){
-			this.memory[this.getMemory(dir-1000000).val] = val;
+			this.setMemory(this.getMemory(dir-1000000).val, val);
 		}else{
 			this.memory[dir] = val;
 		}
@@ -147,6 +148,12 @@ class VM {
 		if(dir>=10000 && dir<20000){ // FUNCTION VAR
 			var fn = this.funcs[this.currentFunc()];
 			var var_memory = fn.memory[fn.memory.length-1][dir-10000];
+			// var var_tmpl = fn.vars.find(a=>{
+			// 	if(a.array){
+			// 		return a.dir==dir
+			// 	}else return a.dir==dir
+			// })
+			// console.log(var_tmpl)
 			return {
 				val: var_memory
 			};
@@ -159,7 +166,7 @@ class VM {
 			}
 		}else if(dir>=100000 && dir<999990){ // CONSTANT
 			return {
-				name: this.const[dir-100000].toString(),
+				name: 'c'+this.const[dir-100000].toString(),
 				val: this.const[dir-100000],
 				dir,
 				constant: true
@@ -174,7 +181,7 @@ class VM {
 					return { val: false, dir };
 			}
 		}else if(dir>=1000000){
-			return this.getMemory(this.temps[dir-1020000]);
+			return this.getMemory(this.getMemory(dir-1000000).val);
 		}else{
 			return {
 				val: this.memory[dir],
@@ -201,6 +208,8 @@ class VM {
 			case OPERATIONS.GOSUB:
 				this.jumps.push(this.cursor);
 				this.cursor = q4-1;
+				this.funcStack.push(this.prepareFunction);
+				this.prepareFunction = -1;
 				break;
 
 
@@ -252,12 +261,15 @@ class VM {
 				this.setMemory(q4, this.getMemory(q2).val + this.getMemory(q3).val);
 				break;
 			case OPERATIONS.MINUS:
+				// console.log(this.getMemory(q2).val, '-', this.getMemory(q3).val)
 				this.setMemory(q4, this.getMemory(q2).val-this.getMemory(q3).val);
 				break;
 			case OPERATIONS.MULT:
+				// console.log(this.getMemory(q2).val, 'x', this.getMemory(q3).val)
 				this.setMemory(q4, this.getMemory(q2).val*this.getMemory(q3).val);
 				break;
 			case OPERATIONS.DIVIDE:
+				// console.log(this.getMemory(q2).val, '/', this.getMemory(q3).val)
 				this.setMemory(q4, this.getMemory(q2).val/this.getMemory(q3).val);
 				break;
 			case OPERATIONS.ASSIGN:
@@ -276,11 +288,11 @@ class VM {
 			// FUNCTIONS
 			case OPERATIONS.ERA:
 				var fx = this.funcs.findIndex(a=>a.name==q2)
-				this.funcs[fx].memory.push(new Array(this.funcs[fx].vars.reduce((a,b)=>a+b.size, 0)));
-				this.funcStack.push(fx);
+				this.prepareFunction = fx;
+				this.funcs[fx].memory.push(new Array(this.funcs[fx].vars.reduce((a,b)=>a+(b.size||1), 0)));
 				break;
 			case OPERATIONS.PARAM:
-				this.funcs[this.currentFunc()].memory[this.funcs[this.currentFunc()].memory.length-1][q2] = this.getMemory(q4).val;
+				this.funcs[this.prepareFunction].memory[this.funcs[this.prepareFunction].memory.length-1][q2] = this.getMemory(q4).val;
 				break;
 			case OPERATIONS.ENDPROC:
 				var func = this.funcStack.pop();
@@ -293,7 +305,6 @@ class VM {
 
 			// SPECIAL FUNCTIONS
 			case OPERATIONS.PRINT:
-				console.log("PRINT", this.getMemory(q4).val)
 				this.output.push(this.getMemory(q4).val);
 				break;
 			case OPERATIONS.VERIFY:

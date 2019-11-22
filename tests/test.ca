@@ -1,14 +1,9 @@
-def d : decimal
-fun fibonacci(n:decimal)
-	print(n)
-	if n<10 then
-		fibonacci(n + 1)
-	else
-		print(-1)
-	end
+fun test(n : decimal)
+	return n * n * 2
 end
 
-
 fun start()
-	fibonacci(1)
+	def i : decimal
+
+	print(test(i))
 end

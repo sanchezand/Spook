@@ -11,6 +11,18 @@ fun fibonacci(n:decimal)
 	return b
 end
 
+fun fiboRecursion(n: decimal)
+	if n<2 then
+		return n
+	else
+		return fiboRecursion(n-1) + fiboRecursion(n-2)
+	end
+end
+
 fun start()
-	print(fibonacci(9))
+	def n : decimal
+	n = 5
+
+	print(fibonacci(5))
+	print(fiboRecursion(5))
 end

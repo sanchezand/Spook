@@ -2,34 +2,29 @@ const spook = require('./spook');
 const VM = require('./SpookVM');
 
 var testCode = `
-fun fibonacci(n:decimal)
-	def a, b, temp : decimal
-	a = 1
-	b = 0
-	while n>=0 do
-		temp = a
-		a = a+b
-		b = temp
-		n = n-1
+fun fiboRecursion(n: decimal)
+	if n<2 then
+		return n
+	else
+		return fiboRecursion(n-1) + fiboRecursion(n-2)
 	end
-	return b
 end
 
 fun start()
-	print(fibonacci(9))
+	def n : decimal
+	n = 3
+
+	print(fiboRecursion(n))
 end
 `
 
-function fibonacci(num){
-	var a = 1, b = 0, temp;
-	while (num >= 0){
-	  	temp = a;
-	  	a = a + b;
-	  	b = temp;
-	 	num--;
-	}
-	return b;
- }
+function test(){
+	var a = [];
+	a[0] = 1
+	a[1] = 2
+	a[2] = a[1] * 10 - a[0]*2 + a[1] + a[0]*4
+	return a[2]
+}
 
 var res = spook.parse(testCode);
 
@@ -38,4 +33,4 @@ var vm = new VM(res.quads, res.vars, res.funcs, res.const, res.temps);
 var out = vm.doQuads();
 
 console.log("CALC:", out)
-console.log("REAL: ", fibonacci(9))
+console.log("REAL: ", test(9))
