@@ -1,27 +1,31 @@
 const spook = require('./spook');
 const VM = require('./SpookVM');
 
+var num = 10
+
 var testCode = `
 fun fiboRecursion(n: decimal)
 	if n<2 then
 		return n
-	else
-		def a,b : decimal
-		a = fiboRecursion(n-1)
-		b = fiboRecursion(n-2)
-		return a+b
 	end
+	return fiboRecursion(n-1)+fiboRecursion(n-2)
 end
 
+
 fun start()
-	print(fiboRecursion(9))
+	print(fiboRecursion(${num}))
 end
 `
 var res = spook.parse(testCode);
-
 var vm = new VM(res.quads, res.vars, res.funcs, res.const, res.temps);
-
 var out = vm.doQuads();
 
+function F(n){
+	if(n<2){
+		return n
+	}
+   return F(n-1) + F(n-2)
+}
+
 console.log("CALC:", out)
-// console.log("REAL: ", test(9))
+console.log("REAL: ", F(num))

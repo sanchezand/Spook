@@ -151,6 +151,7 @@
 		addQuad(OPERATIONS.ERA, name, -1, -1);
 		for(var i=0; i<params.length; i++){
 			addQuad(OPERATIONS.PARAM, i, -1, params[i].dir)
+			valStack.pop();
 		}
 		addQuad(OPERATIONS.GOSUB, -1, -1, func.dir);
 
@@ -269,7 +270,7 @@
 	}
 
 	function addQuad(opCode, dir1, dir2, dir3){
-		// console.log(`${count}:\t ${opGetSymbol(opCode)}\t${dir1}\t${dir2}\t${dir3}\t`)
+		console.log(`${count}:\t ${opGetSymbol(opCode)}\t${dir1}\t${dir2}\t${dir3}\t`)
 		QUADS.push([opCode, dir1, dir2, dir3]);
 		count += 1;
 		return dir3;
@@ -415,11 +416,11 @@ start:
 		// }
 		// // console.log(FUNCS);
 		// // console.log(QUADS);
-		var j = 0;
-		for(var i of QUADS){
-			console.log(`${j}:\t ${opGetSymbol(i[0])}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
-			j++;
-		}
+		// var j = 0;
+		// for(var i of QUADS){
+		// 	console.log(`${j}:\t ${opGetSymbol(i[0])}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
+		// 	j++;
+		// }
 		return {
 			quads: QUADS,
 			// pretty: prettyQuads(),
@@ -530,6 +531,7 @@ postFactor:
 	
 startP: {
 	opStack.push('(')
+	console.log("START", @1.first_line, valStack);
 };
 
 endP: {
@@ -537,6 +539,7 @@ endP: {
 	if(p!='('){
 		throw new Error('Popped was not ( - ' + p);
 	}
+	console.log("END--", @1.first_line, valStack);
 };
 
 factor:

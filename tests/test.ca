@@ -2,13 +2,12 @@ fun fiboRecursion(n: decimal)
 	if n<2 then
 		return n
 	else
-		def a,b : decimal
-		a = fiboRecursion(n-1)
-		b = fiboRecursion(n-2)
-		return a+b
+		return fiboRecursion(n-1)+fiboRecursion(n-2)
 	end
 end
 
 fun start()
 	print(fiboRecursion(9))
+	def b : decimal
+	b = (2+4)+2
 end

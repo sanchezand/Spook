@@ -83,7 +83,7 @@ class VM {
 			this.cursor++;
 			var q = this.quads[this.cursor];
 			if(!q) break;
-			console.log(`${this.cursor}:\t ${opGetSymbol(q[0])}\t${q[1]}\t${q[2]}\t${q[3]}\t`)
+			// console.log(`${this.cursor}:\t ${opGetSymbol(q[0])}\t${q[1]}\t${q[2]}\t${q[3]}\t`)
 			this.executeQuad(q);
 			if(this.error){
 				console.log("\n\n=============== ERROR ================");
@@ -102,7 +102,6 @@ class VM {
 		}
 		console.log("");
 		console.log(this.const);
-		// console.log(JSON.stringify(this.funcs));
 
 		return this.output;
 	}
@@ -121,12 +120,10 @@ class VM {
 
 	setMemory(dir, val, bankOffset=0){
 		if(dir>=10000 && dir<20000){ // FUNCTION VAR
+			// Not proud of this.
 			var mem = this.funcs[this.currentFunc()].memory.vars.length-1-bankOffset;
 			this.funcs[this.currentFunc()].memory.vars[mem][dir-10000] = val;
-			// this.funcs[this.currentFunc()].memory[mem][variable] = val;
-			// Not proud of this.
 		}else if(dir>=20000 && dir<100000){ // TEMP
-			// this.temps[dir-20000] = val;
 			var temps = this.funcs[this.currentFunc()].memory.temps.length-1-bankOffset;
 			this.funcs[this.currentFunc()].memory.temps[temps][dir-20000] = val;
 		}else if(dir>=100000 && dir<999990){ // CONSTANT
@@ -262,7 +259,7 @@ class VM {
 				if(isNaN(q2)){
 					var fn = this.funcs.find(a=>a.name==q2);
 					var val = fn.return_values.pop();
-					console.log("Return:", val)
+					// console.log("Return:", val)
 					this.setMemory(q4, val);
 				}else{
 					this.setMemory(q4, this.getMemory(q2).val)
