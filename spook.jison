@@ -10,6 +10,7 @@
 	var opStack = [];
 	var valStack = [];
 	var jumpStack = [];
+	var elseStack = [];
 	var count = 0;
 	var currFunc = -1;
 
@@ -84,6 +85,7 @@
 		var f = jumpStack.pop();
 		addQuad(OPERATIONS.GOTO, -1, -1, null);
 		jumpStack.push(count-1);
+		console.log(f)
 		QUADS[f][3] = count;
 	}
 
@@ -270,7 +272,7 @@
 	}
 
 	function addQuad(opCode, dir1, dir2, dir3){
-		console.log(`${count}:\t ${opGetSymbol(opCode)}\t${dir1}\t${dir2}\t${dir3}\t`)
+		// console.log(`${count}:\t ${opGetSymbol(opCode)}\t${dir1}\t${dir2}\t${dir3}\t`)
 		QUADS.push([opCode, dir1, dir2, dir3]);
 		count += 1;
 		return dir3;
@@ -365,6 +367,7 @@
 "decimal"						return 'DECIMAL'
 "bool"						 	return 'BOOL'
 "else"							return 'ELSE'
+'elseif'							return 'ELSEIF'
 "=="								return 'EQUALS'
 ">="								return 'GTR_EQTHN'
 "<="								return 'LESS_EQTHN'
@@ -416,11 +419,11 @@ start:
 		// }
 		// // console.log(FUNCS);
 		// // console.log(QUADS);
-		// var j = 0;
-		// for(var i of QUADS){
-		// 	console.log(`${j}:\t ${opGetSymbol(i[0])}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
-		// 	j++;
-		// }
+		var j = 0;
+		for(var i of QUADS){
+			console.log(`${j}:\t ${opGetSymbol(i[0])}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
+			j++;
+		}
 		return {
 			quads: QUADS,
 			// pretty: prettyQuads(),
@@ -531,7 +534,6 @@ postFactor:
 	
 startP: {
 	opStack.push('(')
-	console.log("START", @1.first_line, valStack);
 };
 
 endP: {
@@ -539,7 +541,6 @@ endP: {
 	if(p!='('){
 		throw new Error('Popped was not ( - ' + p);
 	}
-	console.log("END--", @1.first_line, valStack);
 };
 
 factor:
@@ -625,20 +626,38 @@ idlist:
 		$$ = [$1, ...$3]
 	};
 
-conditional:
-	IF expression startIf THEN statements endIf END 
-	| IF expression startIf THEN statements ELSE elseIf statements endIf END
+conditionalElse:
+	| ELSE statements
 	;
+
+conditionalElseIf:
+	| ELSEIF expression startIf THEN statements endIf conditionalElseIf
+	;
+
+conditional:
+	IF beginIf expression startIf THEN statements endIf conditionalElseIf conditionalElse END {
+		for(i of elseStack[elseStack.length-1]){
+			QUADS[i][3] = count;
+		}
+		elseStack.pop();
+	}
+	;
+
+beginIf: {
+	elseStack.push([]);
+};
 
 startIf: {
 	startIf();
 };
 
 endIf: {
+	elseStack[elseStack.length-1].push(count);
+	addQuad(OPERATIONS.GOTO, -1, -1, null);
 	endIf();
 };
 
-elseIf: {
+else: {
 	elseIf();
 };
 
@@ -825,7 +844,10 @@ compOp:
 		addOperator(OPERATIONS.LESS_EQTHN);
 		$$ = OPERATIONS.LESS_EQTHN
 	}
-	| AND {
+	;
+
+compareOp:
+	AND {
 		addOperator(OPERATIONS.AND);
 		$$ = OPERATIONS.AND;
 	}
