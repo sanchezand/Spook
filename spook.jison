@@ -3,10 +3,9 @@
 %{
 	var QUADS = [];
 	var VARS = [];
-	var TEMPS = 0;
 	var CONST = [];
 	var FUNCS = [];
-	var FUNC_RETURN = [];
+	var TEMPS = 0;
 
 	var opStack = [];
 	var valStack = [];
@@ -52,7 +51,6 @@
 	function begin(){
 		QUADS = [];
 		VARS = [];
-		TEMPS = 0;
 		CONST = [];
 		FUNCS = [];
 
@@ -109,6 +107,7 @@
 			params,
 			vars,
 			dir: count,
+			temps: 0,
 			start: name=='start'
 		});
 		currFunc = FUNCS.length-1;
@@ -177,8 +176,8 @@
 
 	// Add temporary var and return its direction.
 	function addTemp(){
-		var dir = TEMPS+20000;
-		TEMPS++;
+		var dir = FUNCS[currFunc].temps+20000;
+		FUNCS[currFunc].temps++;
 		return dir;
 	}
 
@@ -215,7 +214,7 @@
 		}else if(dir>=20000 && dir<100000){ // TEMP
 			return {
 				name: 't'+(dir-20000),
-				val: TEMPS[dir-20000],
+				val: FUNCS[currFunc].temps[dir-20000],
 				dir,
 				temp: true
 			}
@@ -417,17 +416,16 @@ start:
 		// // console.log(FUNCS);
 		// // console.log(QUADS);
 		var j = 0;
-		for(var i of prettyQuads()){
-			console.log(`${j}:\t ${i[0]}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
+		for(var i of QUADS){
+			console.log(`${j}:\t ${opGetSymbol(i[0])}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
 			j++;
 		}
 		return {
 			quads: QUADS,
-			pretty: prettyQuads(),
+			// pretty: prettyQuads(),
 			funcs: FUNCS,
 			vars: VARS,
-			const: CONST,
-			temps: TEMPS
+			const: CONST
 		};
 	}
 	;
@@ -588,8 +586,8 @@ id:
 		$$ = val;
 	}
 	| queries
-	| NAME '(' expressionlist ')' {
-		var fc = functionCall($1, $3);
+	| NAME '(' startP expressionlist endP ')' {
+		var fc = functionCall($1, $4);
 		if(fc.return){
 			var t = addTemp();
 			addQuad(OPERATIONS.ASSIGN, fc.name, -1, t);
@@ -761,18 +759,22 @@ statement:
 	| loop
 	| id
 	| actions
-	| RETURN expression{
-		FUNCS[currFunc].return = true;
-		var dir = $2.dir;
-		if(!$2.temp){
+	| RETURN setReturn expression{
+		var dir = $3.dir;
+		if(!$3.temp){
 			var t = addTemp();
 			addQuad(OPERATIONS.ASSIGN, dir, -1, t);
 			dir = t;
 		}
 		addQuad(OPERATIONS.RETURN, -1, -1, dir);
-		$$ = $2;
+		addQuad(OPERATIONS.ENDPROC, -1, -1, -1);
+		$$ = $3;
 	}
 	;
+
+setReturn: {
+	FUNCS[currFunc].return = true;
+};
 
 type:
 	DECIMAL | BOOL;

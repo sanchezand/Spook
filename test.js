@@ -6,26 +6,17 @@ fun fiboRecursion(n: decimal)
 	if n<2 then
 		return n
 	else
-		return fiboRecursion(n-1) + fiboRecursion(n-2)
+		def a,b : decimal
+		a = fiboRecursion(n-1)
+		b = fiboRecursion(n-2)
+		return a+b
 	end
 end
 
 fun start()
-	def n : decimal
-	n = 3
-
-	print(fiboRecursion(n))
+	print(fiboRecursion(9))
 end
 `
-
-function test(){
-	var a = [];
-	a[0] = 1
-	a[1] = 2
-	a[2] = a[1] * 10 - a[0]*2 + a[1] + a[0]*4
-	return a[2]
-}
-
 var res = spook.parse(testCode);
 
 var vm = new VM(res.quads, res.vars, res.funcs, res.const, res.temps);
@@ -33,4 +24,4 @@ var vm = new VM(res.quads, res.vars, res.funcs, res.const, res.temps);
 var out = vm.doQuads();
 
 console.log("CALC:", out)
-console.log("REAL: ", test(9))
+// console.log("REAL: ", test(9))

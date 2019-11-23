@@ -52,35 +52,32 @@ class VM {
 		this.const = constants
 		this.funcStack = [];
 		this.prepareFunction = -1;
+		this.prepareMemory = { vars: [], temps: [] }
 		this.error = false;
 		this.moves = [];
 		this.output = [];
-
-		// STACKS
 		this.jumps = [];
 
-		// MEMORY
-		this.temps = new Array(parseInt(temps));
+		// Global memory
 		this.memory = new Array(this.vars.reduce((a,b)=>a+(b.size || 0), 0));
 
 		for(var i of this.funcs){
-			i.memory = [];
+			i.memory = {
+				vars: [],
+				temps: []
+			};
 			i.return_values = [];
 		}
-
-		// for(var i of this.vars){
-		// 	if(i.array){
-		// 		i.val = new Array(parseInt(i.size));
-		// 	}else{
-		// 		i.val = -1;
-		// 	}
-		// }
-
 		// this.doQuads();
 	}
 
 	doQuads(){
 		this.cursor = -1;
+
+		for(var q of this.quads){
+			// console.log(`${this.cursor}:\t ${opGetSymbol(q[0])}\t${q[1]}\t${q[2]}\t${q[3]}\t`)
+		}
+
 		console.log("\n\n=============== QUADS ================\n");
 		while(this.cursor<this.quads.length){
 			this.cursor++;
@@ -105,9 +102,7 @@ class VM {
 		}
 		console.log("");
 		console.log(this.const);
-		for(var i=0; i<this.temps.length; i++){
-			console.log('t'+i, '=', this.temps[i]);
-		}
+		// console.log(JSON.stringify(this.funcs));
 
 		return this.output;
 	}
@@ -124,15 +119,16 @@ class VM {
 		return this.moves;
 	}
 
-	setMemory(dir, val){
+	setMemory(dir, val, bankOffset=0){
 		if(dir>=10000 && dir<20000){ // FUNCTION VAR
-			var mem = this.funcs[this.currentFunc()].memory.length-1;
-			this.funcs[this.currentFunc()].memory[mem][dir-10000] = val;
+			var mem = this.funcs[this.currentFunc()].memory.vars.length-1-bankOffset;
+			this.funcs[this.currentFunc()].memory.vars[mem][dir-10000] = val;
 			// this.funcs[this.currentFunc()].memory[mem][variable] = val;
 			// Not proud of this.
 		}else if(dir>=20000 && dir<100000){ // TEMP
-			this.temps[dir-20000] = val;
-			return;
+			// this.temps[dir-20000] = val;
+			var temps = this.funcs[this.currentFunc()].memory.temps.length-1-bankOffset;
+			this.funcs[this.currentFunc()].memory.temps[temps][dir-20000] = val;
 		}else if(dir>=100000 && dir<999990){ // CONSTANT
 			return;
 		}else if(dir>999990 && dir<1000000){ // SPECIALS
@@ -144,23 +140,19 @@ class VM {
 		}
 	}
 
-	getMemory(dir){
+	getMemory(dir, bankOffset=0){
 		if(dir>=10000 && dir<20000){ // FUNCTION VAR
 			var fn = this.funcs[this.currentFunc()];
-			var var_memory = fn.memory[fn.memory.length-1][dir-10000];
-			// var var_tmpl = fn.vars.find(a=>{
-			// 	if(a.array){
-			// 		return a.dir==dir
-			// 	}else return a.dir==dir
-			// })
-			// console.log(var_tmpl)
+			var var_memory = fn.memory.vars[fn.memory.vars.length-1-bankOffset][dir-10000];
 			return {
 				val: var_memory
 			};
 		}else if(dir>=20000 && dir<100000){ // TEMP
+			var fn = this.funcs[this.currentFunc()];
+			var val = fn.memory.temps[fn.memory.temps.length-1-bankOffset][dir-20000];
 			return {
 				name: 't'+(dir-20000),
-				val: this.temps[dir-20000],
+				val: val,
 				dir,
 				temp: true
 			}
@@ -203,13 +195,7 @@ class VM {
 				break;
 			case OPERATIONS.RETURN:
 				var fn = this.funcs[this.currentFunc()]
-				this.funcs[this.currentFunc()].return_values.push(q4);
-				break;
-			case OPERATIONS.GOSUB:
-				this.jumps.push(this.cursor);
-				this.cursor = q4-1;
-				this.funcStack.push(this.prepareFunction);
-				this.prepareFunction = -1;
+				this.funcs[this.currentFunc()].return_values.push(this.getMemory(q4).val);
 				break;
 
 
@@ -275,9 +261,9 @@ class VM {
 			case OPERATIONS.ASSIGN:
 				if(isNaN(q2)){
 					var fn = this.funcs.find(a=>a.name==q2);
-					var dir = fn.return_values.pop();
-					var mem = this.getMemory(dir);
-					this.setMemory(q4, mem.val);
+					var val = fn.return_values.pop();
+					console.log("Return:", val)
+					this.setMemory(q4, val);
 				}else{
 					this.setMemory(q4, this.getMemory(q2).val)
 				}
@@ -289,14 +275,27 @@ class VM {
 			case OPERATIONS.ERA:
 				var fx = this.funcs.findIndex(a=>a.name==q2)
 				this.prepareFunction = fx;
-				this.funcs[fx].memory.push(new Array(this.funcs[fx].vars.reduce((a,b)=>a+(b.size||1), 0)));
+				this.prepareMemory.vars = new Array(this.funcs[fx].vars.reduce((a,b)=>a+(b.size||1), 0));
+				this.prepareMemory.temps = new Array(this.funcs[fx].temps);
 				break;
 			case OPERATIONS.PARAM:
-				this.funcs[this.prepareFunction].memory[this.funcs[this.prepareFunction].memory.length-1][q2] = this.getMemory(q4).val;
+				this.prepareMemory.vars[q2] = this.getMemory(q4).val;
+				break;
+			case OPERATIONS.GOSUB:
+				this.jumps.push(this.cursor);
+				this.cursor = q4-1;
+				this.funcStack.push(this.prepareFunction);
+				// console.log("\n\n"+this.funcs[this.prepareFunction].name, ":",this.prepareMemory);
+				this.funcs[this.prepareFunction].memory.vars.push(this.prepareMemory.vars);
+				this.funcs[this.prepareFunction].memory.temps.push(this.prepareMemory.temps);
+				this.prepareMemory.vars = [];
+				this.prepareMemory.temps = [];
+				this.prepareFunction = -1;
 				break;
 			case OPERATIONS.ENDPROC:
 				var func = this.funcStack.pop();
-				this.funcs[func].memory.pop();
+				var vars = this.funcs[func].memory.vars.pop();
+				var temps = this.funcs[func].memory.temps.pop();
 				if(this.funcs[func].start) return;
 				this.cursor = this.jumps.pop();
 				break;
@@ -305,6 +304,7 @@ class VM {
 
 			// SPECIAL FUNCTIONS
 			case OPERATIONS.PRINT:
+				// console.log(q4, this.funcs[this.currentFunc()].memory, this.getMemory(q4));
 				this.output.push(this.getMemory(q4).val);
 				break;
 			case OPERATIONS.VERIFY:
