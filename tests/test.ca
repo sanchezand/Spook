@@ -1,17 +1,8 @@
 fun start()
-	def a,b : decimal
-	if 0==0 then
-		a = b+b
-		if 1==1 then
-			a = b+b
-		end
-	elseif 2==2 then
-		if 3==3 then
-			a = b+b
-		elseif 4==4 then
-			a = b+b
-		end
-	else
-		a = b+b
+	def n : decimal
+	n = 10
+	while n>0 do
+		print(n)
+		n = n - 1
 	end
 end

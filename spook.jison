@@ -420,10 +420,10 @@ start:
 		// // console.log(FUNCS);
 		// // console.log(QUADS);
 		var j = 0;
-		for(var i of QUADS){
-			console.log(`${j}:\t ${opGetSymbol(i[0])}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
-			j++;
-		}
+		// for(var i of QUADS){
+		// 	console.log(`${j}:\t ${opGetSymbol(i[0])}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
+		// 	j++;
+		// }
 		return {
 			quads: QUADS,
 			// pretty: prettyQuads(),
@@ -492,15 +492,56 @@ assign:
 	}
 	;
 
-expression:
-	exp compOp exp{
-		var temp = addTemp();
-		$$ = addQuad($2, $1.dir, $3.dir, temp);
-		valStack.push(temp);
-		$$ = { dir: valStack[valStack.length-1] };
+
+
+// expression:
+// 	exp compOp exp{
+// 		var temp = addTemp();
+// 		$$ = addQuad($2, $1.dir, $3.dir, temp);
+// 		valStack.push(temp);
+// 		$$ = { dir: valStack[valStack.length-1] };
+// 	}
+// 	| exp {
+// 		$$ = { dir: valStack[valStack.length-1] };
+// 	}
+// 	;
+
+
+
+compList2:
+	{
+		$$ = []
 	}
-	| exp {
-		$$ = { dir: valStack[valStack.length-1] };
+	| compOp exp compList2 {
+		$$ = [ [$1, $2.dir], ...$3 ]
+		opStack.pop();
+		valStack.pop();
+	};
+
+compList:
+	exp compList2 {
+		$$ = [$1.dir, ...$2]
+
+		if($2.length>0){
+			valStack.pop();
+		}
+	};
+
+expression:
+	compList {
+		var arr = $1.slice(1);
+		var init = $1[0];
+		for(var i of arr){
+			var t = addTemp();
+			addQuad(i[0], init, i[1], t);
+			init = t;
+		}
+		if(arr.length>0){
+			valStack.push(init);
+			$$ = { dir: init };
+		}else{
+			$$ = { dir: valStack[valStack.length-1] }
+		}
 	}
 	;
 
@@ -844,10 +885,7 @@ compOp:
 		addOperator(OPERATIONS.LESS_EQTHN);
 		$$ = OPERATIONS.LESS_EQTHN
 	}
-	;
-
-compareOp:
-	AND {
+	| AND {
 		addOperator(OPERATIONS.AND);
 		$$ = OPERATIONS.AND;
 	}

@@ -78,7 +78,7 @@ class VM {
 			// console.log(`${this.cursor}:\t ${opGetSymbol(q[0])}\t${q[1]}\t${q[2]}\t${q[3]}\t`)
 		}
 
-		console.log("\n\n=============== QUADS ================\n");
+		// console.log("\n\n=============== QUADS ================\n");
 		while(this.cursor<this.quads.length){
 			this.cursor++;
 			var q = this.quads[this.cursor];
@@ -86,22 +86,22 @@ class VM {
 			// console.log(`${this.cursor}:\t ${opGetSymbol(q[0])}\t${q[1]}\t${q[2]}\t${q[3]}\t`)
 			this.executeQuad(q);
 			if(this.error){
-				console.log("\n\n=============== ERROR ================");
+				// console.log("\n\n=============== ERROR ================");
 				break;
 			}
 		}
 		
-		console.log("========================");
-		for(var i of this.vars){
-			if(i.function)continue;
-			if(i.array){
-				console.log(i.name, '=', this.memory.slice(i.dir, i.dir+i.size))
-			}else{
-				console.log(i.name, '=', this.memory[i.dir])
-			}
-		}
-		console.log("");
-		console.log(this.const);
+		// console.log("========================");
+		// for(var i of this.vars){
+		// 	if(i.function)continue;
+		// 	if(i.array){
+		// 		console.log(i.name, '=', this.memory.slice(i.dir, i.dir+i.size))
+		// 	}else{
+		// 		console.log(i.name, '=', this.memory[i.dir])
+		// 	}
+		// }
+		// console.log("");
+		// console.log(this.const);
 
 		return this.output;
 	}
