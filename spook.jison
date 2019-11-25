@@ -49,6 +49,28 @@
 		PUTDOWN: 29
 	}
 
+	var ERRORS = {
+		COMPILER_ERROR: 0,
+
+		ASSIGN_INCORRECT_TYPE: 100,
+		ASSIGN_NO_VAR: 101,
+		ASSIGN_TO_ARRAY: 102,
+		ASSIGN_TO_NOT_ARRAY: 103,
+
+		DECLARE_REDECLARATION: 200,
+
+		OPERATION_INCOMPATIBLE_TYPES: 300,
+
+		METHOD_NO_METHOD: 400,
+		METHOD_REDECLARATION: 401,
+		METHOD_REDECLARATION_VARIABLE: 402,
+		METHOD_PARAM_LENGTH: 403,
+
+		ACCESS_NO_VAR: 500,
+		ACCESS_NOT_ARRAY: 501,
+		ACCESS_IS_ARRAY: 502
+	}
+
 	function begin(){
 		QUADS = [];
 		VARS = [];
@@ -68,9 +90,9 @@
 	}
 
 	// Executes right after "then"
-	function startIf(){
+	function startIf(line){
 		var cond = valStack.pop();
-		addQuad(OPERATIONS.GOTOF, cond, -1, null);
+		addQuad(OPERATIONS.GOTOF, cond, -1, null, line);
 		jumpStack.push(count-1);
 	}
 
@@ -81,9 +103,9 @@
 	}
 
 	// Executes before if "else"
-	function elseIf(){
+	function elseIf(line){
 		var f = jumpStack.pop();
-		addQuad(OPERATIONS.GOTO, -1, -1, null);
+		addQuad(OPERATIONS.GOTO, -1, -1, null, line);
 		jumpStack.push(count-1);
 		console.log(f)
 		QUADS[f][3] = count;
@@ -92,12 +114,10 @@
 	// Declares a function. After "fun"
 	function declareFunction(name, params){
 		if(FUNCS.findIndex(a=>a.name==name)!=-1){
-			//TODO: THROW ERR
-			return;
+			return { error: ERRORS.METHOD_REDECLARATION };
 		}
 		if(VARS.findIndex(a=>a.name==name)!=-1){
-			//TODO: THROW ERR
-			return;
+			return { error: ERRORS.METHOD_REDECLARATION_VARIABLE };
 		}
 		var vars = [];
 		for(var i of params){
@@ -116,7 +136,7 @@
 		VARS.push({
 			name, type: 'func', val: -1, function: true
 		});
-		return FUNCS.length-1;
+		return { dir: FUNCS.length-1, error: false };
 	}
 
 	// Declares a repeat. After "repeat"
@@ -125,37 +145,33 @@
 	}
 
 	// Declares that a loop started. After "do"
-	function startLoop(){
-		addQuad(OPERATIONS.GOTOF, valStack.pop(), -1, null);
+	function startLoop(line){
+		addQuad(OPERATIONS.GOTOF, valStack.pop(), -1, null, line);
 		jumpStack.push(count-1);
 	}
 
 	// Declares that a loop has ended. Before "end"
-	function endLoop(){
+	function endLoop(line){
 		var f = jumpStack.pop();
 		var ret = jumpStack.pop();
-		addQuad(OPERATIONS.GOTO, -1, -1, ret);
+		addQuad(OPERATIONS.GOTO, -1, -1, ret, line);
 		QUADS[f][3] = count;
 	}
 
-	function functionCall(name, params){
+	function functionCall(name, params, line){
 		var func = FUNCS.find(a=>a.name==name);
 		if(!func){
-			// TODO: THROW ERROR
-			console.log("Invalid function");
-			return false;
+			return { error: ERRORS.METHOD_NO_METHOD };
 		}
 		if(func.params.length!=params.length){
-			// TODO: THROW ERROR
-			console.log("Incorrect params length");
-			return false;
+			return { error: ERRORS.METHOD_PARAM_LENGTH };
 		}
-		addQuad(OPERATIONS.ERA, name, -1, -1);
+		addQuad(OPERATIONS.ERA, name, -1, -1, line);
 		for(var i=0; i<params.length; i++){
-			addQuad(OPERATIONS.PARAM, i, -1, params[i].dir)
+			addQuad(OPERATIONS.PARAM, i, -1, params[i].dir, line)
 			valStack.pop();
 		}
-		addQuad(OPERATIONS.GOSUB, -1, -1, func.dir);
+		addQuad(OPERATIONS.GOSUB, -1, -1, func.dir, line);
 
 		if(func.return){
 			return FUNCS.find(a=>a.name==name);
@@ -187,6 +203,7 @@
 	// Defines a variable
 	function defineVariable(name, type, size=false){
 		var bank = currFunc==-1 ? VARS : FUNCS[currFunc].vars
+		if(bank.findIndex(a=>a.name==name)!=-1) return false;
 		var dir = bank.reduce((a,b)=>a+b.size, 0) + (currFunc==-1 ? 0 : 10000);
 		var newVal = {
 			name, type, dir,
@@ -271,9 +288,9 @@
 		return VARS[ix];
 	}
 
-	function addQuad(opCode, dir1, dir2, dir3){
+	function addQuad(opCode, dir1, dir2, dir3, line){
 		// console.log(`${count}:\t ${opGetSymbol(opCode)}\t${dir1}\t${dir2}\t${dir3}\t`)
-		QUADS.push([opCode, dir1, dir2, dir3]);
+		QUADS.push([opCode, dir1, dir2, dir3, line]);
 		count += 1;
 		return dir3;
 	}
@@ -329,7 +346,7 @@
 		opStack.push(op);
 	}
 
-	function generateQuad(){
+	function generateQuad(line){
 		var peek = opStack.pop();
 		var temp;
 		var valDer = valStack.pop(), valIz = valStack.pop();
@@ -339,7 +356,7 @@
 		}else{
 			temp = addTemp();
 		}
-		addQuad(peek, peek==OPERATIONS.ASSIGN ? valDer : valIz, peek==OPERATIONS.ASSIGN ? -1 : valDer, temp)
+		addQuad(peek, peek==OPERATIONS.ASSIGN ? valDer : valIz, peek==OPERATIONS.ASSIGN ? -1 : valDer, temp, line)
 		valStack.push(temp);
 		return { dir: temp }
 	}
@@ -407,8 +424,8 @@
 
 begin: {
 	begin();
-	addQuad(OPERATIONS.ERA, 'start', -1, -1);
-	addQuad(OPERATIONS.GOSUB, -1, -1, null);
+	addQuad(OPERATIONS.ERA, 'start', -1, -1, -1);
+	addQuad(OPERATIONS.GOSUB, -1, -1, null, -1);
 };
 
 start:
@@ -420,10 +437,10 @@ start:
 		// // console.log(FUNCS);
 		// // console.log(QUADS);
 		var j = 0;
-		// for(var i of QUADS){
-		// 	console.log(`${j}:\t ${opGetSymbol(i[0])}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
-		// 	j++;
-		// }
+		for(var i of QUADS){
+			console.log(`[${i[4]}]: ${j}:\t ${opGetSymbol(i[0])}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
+			j++;
+		}
 		return {
 			quads: QUADS,
 			// pretty: prettyQuads(),
@@ -448,16 +465,15 @@ vars:
 		for(var i of $2){
 			var added = defineVariable(i, $4);
 			if(!added) {
-				// THROW ERROR
+				return { error: { line: @1.first_line, type: ERRORS.DECLARE_REDECLARATION } }
 			}
-
 		}
 	}
 	| DEF idlist ':' type '[' NUMBER ']' {
 		for(var i of $2){
 			var added = defineVariable(i, $4, parseInt($6))
 			if(!added){
-				// THROW ERROR
+				return { error: { line: @1.first_line, type: ERRORS.DECLARE_REDECLARATION } }
 			}
 		}
 	}
@@ -467,28 +483,26 @@ assign:
 	NAME assignOp expression {
 		var assignVar = getVariableFromName($1);
 		if(!assignVar){
-			// THROW ERROR
-			throw new Error('No such var '+$1 + ' - LINE: '+@1.first_line);
+			return { error: { line: @1.first_line, type: ERRORS.ASSIGN_NO_VAR } }
 		}
 		if(assignVar.array){
-			// THROW ERROR
-			throw new Error('Var is array '+assignVar.name + ' - LINE: '+@1.first_line);
+			return { error: { line: @1.first_line, type: ERRORS.ASSIGN_TO_ARRAY } }
 		}
-		addQuad(OPERATIONS.ASSIGN, $3.dir, -1, assignVar.dir);
+		addQuad(OPERATIONS.ASSIGN, $3.dir, -1, assignVar.dir, @1.first_line);
 	}
 	| NAME '[' startP expression endP ']' assignOp expression {
 		var assignVar = getVariableFromName($1);
 		if(!assignVar){
-			throw new Error('No such var '+$1 + ' - LINE: '+@1.first_line);
+			return { error: { line: @1.first_line, type: ERRORS.ASSIGN_NO_VAR } }
 		}
 		if(!assignVar.array){
-			throw new Error('Var is not array '+assignVar.name + ' - LINE: '+@1.first_line);
+			return { error: { line: @1.first_line, type: ERRORS.ASSIGN_TO_NOT_ARRAY } }
 		}
 		var t = addTemp();
-		addQuad(OPERATIONS.VERIFY, $4.dir, 0, assignVar.size-1);
-		addQuad(OPERATIONS.SUM, $4.dir, addConstant(assignVar.dir), t);
+		addQuad(OPERATIONS.VERIFY, $4.dir, 0, assignVar.size-1, @1.first_line);
+		addQuad(OPERATIONS.SUM, $4.dir, addConstant(assignVar.dir), t, @1.first_line);
 		valStack.pop();
-		addQuad(OPERATIONS.ASSIGN, $8.dir, -1, t+1000000);
+		addQuad(OPERATIONS.ASSIGN, $8.dir, -1, t+1000000, @1.first_line);
 	}
 	;
 
@@ -533,7 +547,7 @@ expression:
 		var init = $1[0];
 		for(var i of arr){
 			var t = addTemp();
-			addQuad(i[0], init, i[1], t);
+			addQuad(i[0], init, i[1], t, @1.first_line);
 			init = t;
 		}
 		if(arr.length>0){
@@ -555,7 +569,7 @@ exp:
 postTermino: 
 	{
 		if([OPERATIONS.SUM, OPERATIONS.MINUS].indexOf(opStack[opStack.length-1])!=-1){
-			$$ = generateQuad();
+			$$ = generateQuad(@1.first_line);
 		}else $$ = false;
 	};
 
@@ -569,7 +583,7 @@ termino:
 postFactor: 
 	{
 		if([OPERATIONS.MULT, OPERATIONS.DIVIDE].indexOf(opStack[opStack.length-1])!=-1){
-			$$ = generateQuad();
+			$$ = generateQuad(@1.first_line);
 		}else $$ = false;
 	};
 	
@@ -580,7 +594,7 @@ startP: {
 endP: {
 	var p = opStack.pop();
 	if(p!='('){
-		throw new Error('Popped was not ( - ' + p);
+		return { error: { line: @1.first_line, type: ERRORS.COMPILER_ERROR } }
 	}
 };
 
@@ -613,29 +627,35 @@ id:
 	NAME '[' startP expression endP ']' {
 		var val = getVariableFromName($1);
 		if(!val){
-			// THROW ERROR
-			throw new Error('No such var '+$1 + ' - LINE: '+@1.first_line);
+			return { error: { line: @1.first_line, type: ERRORS.ACCESS_NO_VAR } }
 		}
 		if(!val.array){
-			// THROW ERROR
-			throw new Error('Var is not array');
+			return { error: { line: @1.first_line, type: ERRORS.ACCESS_NOT_ARRAY } }
 		}
 		var t = addTemp();
-		addQuad(OPERATIONS.VERIFY, $4.dir, 0, val.size-1);
-		addQuad(OPERATIONS.SUM, $4.dir, addConstant(val.dir), t);
+		addQuad(OPERATIONS.VERIFY, $4.dir, 0, val.size-1, @1.first_line);
+		addQuad(OPERATIONS.SUM, $4.dir, addConstant(val.dir), t, @1.first_line);
 		valStack.pop();
 		$$ = { dir: t+1000000 }
 	}
 	| NAME {
 		var val = getVariableFromName($1);
+		if(!val){
+			return { error: { line: @1.first_line, type: ERRORS.ACCESS_NO_VAR } }
+		}
+		if(val.array){
+			return { error: { line: @1.first_line, type: ERRORS.ACCESS_IS_ARRAY } }
+		}
 		$$ = val;
 	}
 	| queries
 	| NAME '(' startP expressionlist endP ')' {
-		var fc = functionCall($1, $4);
-		if(fc.return){
+		var fc = functionCall($1, $4, @1.first_line);
+		if(fc.error){
+			return { error: { line: @1.first_line, error: fc.error } }
+		}else if(fc.return){
 			var t = addTemp();
-			addQuad(OPERATIONS.ASSIGN, fc.name, -1, t);
+			addQuad(OPERATIONS.ASSIGN, fc.name, -1, t, @1.first_line);
 			$$ = { dir: t }
 		}else{
 			$$ = fc;
@@ -689,34 +709,34 @@ beginIf: {
 };
 
 startIf: {
-	startIf();
+	startIf(@1.first_line);
 };
 
 endIf: {
 	elseStack[elseStack.length-1].push(count);
-	addQuad(OPERATIONS.GOTO, -1, -1, null);
-	endIf();
+	addQuad(OPERATIONS.GOTO, -1, -1, null, @1.first_line);
+	endIf(@1.first_line);
 };
 
 else: {
-	elseIf();
+	elseIf(@1.first_line);
 };
 
 actions:
 	FORWARD '(' ')' {
-		addQuad(OPERATIONS.MOVE, -1, -1, -1);
+		addQuad(OPERATIONS.MOVE, -1, -1, -1, @1.first_line);
 	}
 	| ROTRIGHT '(' ')' {
-		addQuad(OPERATIONS.ROTATE, -1, -1, -1);
+		addQuad(OPERATIONS.ROTATE, -1, -1, -1, @1.first_line);
 	}
 	| PICKUP '(' ')' {
-		addQuad(OPERATIONS.PICKUP, -1, -1, -1);
+		addQuad(OPERATIONS.PICKUP, -1, -1, -1, @1.first_line);
 	}
 	| PUTDOWN '(' ')' {
-		addQuad(OPERATIONS.PUTDOWN, -1, -1, -1);
+		addQuad(OPERATIONS.PUTDOWN, -1, -1, -1, @1.first_line);
 	}
 	| OUT '(' expression ')' {
-		addQuad(OPERATIONS.PRINT, -1, -1, $3.dir);
+		addQuad(OPERATIONS.PRINT, -1, -1, $3.dir, @1.first_line);
 	}
 	;
 
@@ -733,12 +753,10 @@ queries:
 	| LEN '(' NAME ')' {
 		var val = getVariableFromName($3);
 		if(!val){
-			// THROW ERROR
-			throw new Error('No such var '+$1 + ' - LINE: '+@1.first_line);
+			return { error: { line: @1.first_line, type: ERRORS.ACCESS_NO_VAR } }
 		}
 		if(!val.array){
-			// THROW ERROR
-			throw new Error('Var is not array '+$1 + ' - LINE: '+@1.first_line);
+			return { error: { line: @1.first_line, type: ERRORS.ACCESS_NOT_ARRAY } }
 		}
 		var t = addTemp();
 		addQuad(OPERATIONS.LENGTH, val.dir, -1, t);
@@ -781,7 +799,12 @@ declareFunction:
 		if($2=='start'){
 			declareStart();
 		}
-		$$ = declareFunction($2, $3);
+		var fn = declareFunction($2, $3);
+		if(fn.error===false){
+			$$ = fn.dir;
+		}else{
+			return { error: { line: @1.first_line, type: fn.error } };
+		}
 	}
 	;
 
@@ -792,22 +815,22 @@ function:
 endFunc: 
 	END {
 		currFunc = -1;
-		addQuad(OPERATIONS.ENDPROC, -1, -1, -1);
+		addQuad(OPERATIONS.ENDPROC, -1, -1, -1, @1.first_line);
 	};
 
 loop:
 	REPEAT defineLoop expression DO startLoop statements endLoop END;
 
 defineLoop: {
-	defineLoop();
+	defineLoop(@1.first_line);
 };
 
 startLoop: {
-	startLoop();
+	startLoop(@1.first_line);
 };
 
 endLoop: {
-	endLoop();
+	endLoop(@1.first_line);
 };
 
 declaration:
@@ -826,11 +849,11 @@ statement:
 		var dir = $3.dir;
 		if(!$3.temp){
 			var t = addTemp();
-			addQuad(OPERATIONS.ASSIGN, dir, -1, t);
+			addQuad(OPERATIONS.ASSIGN, dir, -1, t, @1.first_line);
 			dir = t;
 		}
-		addQuad(OPERATIONS.RETURN, -1, -1, dir);
-		addQuad(OPERATIONS.ENDPROC, -1, -1, -1);
+		addQuad(OPERATIONS.RETURN, -1, -1, dir, @1.first_line);
+		addQuad(OPERATIONS.ENDPROC, -1, -1, -1, @1.first_line);
 		$$ = $3;
 	}
 	;

@@ -86,8 +86,8 @@ switch (yystate) {
 case 1:
 
 	begin();
-	addQuad(OPERATIONS.ERA, 'start', -1, -1);
-	addQuad(OPERATIONS.GOSUB, -1, -1, null);
+	addQuad(OPERATIONS.ERA, 'start', -1, -1, -1);
+	addQuad(OPERATIONS.GOSUB, -1, -1, null, -1);
 
 break;
 case 2:
@@ -99,10 +99,10 @@ case 2:
 		// // console.log(FUNCS);
 		// // console.log(QUADS);
 		var j = 0;
-		// for(var i of QUADS){
-		// 	console.log(`${j}:\t ${opGetSymbol(i[0])}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
-		// 	j++;
-		// }
+		for(var i of QUADS){
+			console.log(`[${i[4]}]: ${j}:\t ${opGetSymbol(i[0])}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
+			j++;
+		}
 		return {
 			quads: QUADS,
 			// pretty: prettyQuads(),
@@ -117,9 +117,8 @@ case 7:
 		for(var i of $$[$0-2]){
 			var added = defineVariable(i, $$[$0]);
 			if(!added) {
-				// THROW ERROR
+				return { error: { line: _$[$0-3].first_line, type: ERRORS.DECLARE_REDECLARATION } }
 			}
-
 		}
 	
 break;
@@ -128,7 +127,7 @@ case 8:
 		for(var i of $$[$0-5]){
 			var added = defineVariable(i, $$[$0-3], parseInt($$[$0-1]))
 			if(!added){
-				// THROW ERROR
+				return { error: { line: _$[$0-6].first_line, type: ERRORS.DECLARE_REDECLARATION } }
 			}
 		}
 	
@@ -137,30 +136,28 @@ case 9:
 
 		var assignVar = getVariableFromName($$[$0-2]);
 		if(!assignVar){
-			// THROW ERROR
-			throw new Error('No such var '+$$[$0-2] + ' - LINE: '+_$[$0-2].first_line);
+			return { error: { line: _$[$0-2].first_line, type: ERRORS.ASSIGN_NO_VAR } }
 		}
 		if(assignVar.array){
-			// THROW ERROR
-			throw new Error('Var is array '+assignVar.name + ' - LINE: '+_$[$0-2].first_line);
+			return { error: { line: _$[$0-2].first_line, type: ERRORS.ASSIGN_TO_ARRAY } }
 		}
-		addQuad(OPERATIONS.ASSIGN, $$[$0].dir, -1, assignVar.dir);
+		addQuad(OPERATIONS.ASSIGN, $$[$0].dir, -1, assignVar.dir, _$[$0-2].first_line);
 	
 break;
 case 10:
 
 		var assignVar = getVariableFromName($$[$0-7]);
 		if(!assignVar){
-			throw new Error('No such var '+$$[$0-7] + ' - LINE: '+_$[$0-7].first_line);
+			return { error: { line: _$[$0-7].first_line, type: ERRORS.ASSIGN_NO_VAR } }
 		}
 		if(!assignVar.array){
-			throw new Error('Var is not array '+assignVar.name + ' - LINE: '+_$[$0-7].first_line);
+			return { error: { line: _$[$0-7].first_line, type: ERRORS.ASSIGN_TO_NOT_ARRAY } }
 		}
 		var t = addTemp();
-		addQuad(OPERATIONS.VERIFY, $$[$0-4].dir, 0, assignVar.size-1);
-		addQuad(OPERATIONS.SUM, $$[$0-4].dir, addConstant(assignVar.dir), t);
+		addQuad(OPERATIONS.VERIFY, $$[$0-4].dir, 0, assignVar.size-1, _$[$0-7].first_line);
+		addQuad(OPERATIONS.SUM, $$[$0-4].dir, addConstant(assignVar.dir), t, _$[$0-7].first_line);
 		valStack.pop();
-		addQuad(OPERATIONS.ASSIGN, $$[$0].dir, -1, t+1000000);
+		addQuad(OPERATIONS.ASSIGN, $$[$0].dir, -1, t+1000000, _$[$0-7].first_line);
 	
 break;
 case 11: case 33: case 57: case 61:
@@ -190,7 +187,7 @@ case 14:
 		var init = $$[$0][0];
 		for(var i of arr){
 			var t = addTemp();
-			addQuad(i[0], init, i[1], t);
+			addQuad(i[0], init, i[1], t, _$[$0].first_line);
 			init = t;
 		}
 		if(arr.length>0){
@@ -209,14 +206,14 @@ break;
 case 17:
 
 		if([OPERATIONS.SUM, OPERATIONS.MINUS].indexOf(opStack[opStack.length-1])!=-1){
-			this.$ = generateQuad();
+			this.$ = generateQuad(_$[$0].first_line);
 		}else this.$ = false;
 	
 break;
 case 20:
 
 		if([OPERATIONS.MULT, OPERATIONS.DIVIDE].indexOf(opStack[opStack.length-1])!=-1){
-			this.$ = generateQuad();
+			this.$ = generateQuad(_$[$0].first_line);
 		}else this.$ = false;
 	
 break;
@@ -229,7 +226,7 @@ case 22:
 
 	var p = opStack.pop();
 	if(p!='('){
-		throw new Error('Popped was not ( - ' + p);
+		return { error: { line: _$[$0].first_line, type: ERRORS.COMPILER_ERROR } }
 	}
 
 break;
@@ -265,16 +262,14 @@ case 29:
 
 		var val = getVariableFromName($$[$0-5]);
 		if(!val){
-			// THROW ERROR
-			throw new Error('No such var '+$$[$0-5] + ' - LINE: '+_$[$0-5].first_line);
+			return { error: { line: _$[$0-5].first_line, type: ERRORS.ACCESS_NO_VAR } }
 		}
 		if(!val.array){
-			// THROW ERROR
-			throw new Error('Var is not array');
+			return { error: { line: _$[$0-5].first_line, type: ERRORS.ACCESS_NOT_ARRAY } }
 		}
 		var t = addTemp();
-		addQuad(OPERATIONS.VERIFY, $$[$0-2].dir, 0, val.size-1);
-		addQuad(OPERATIONS.SUM, $$[$0-2].dir, addConstant(val.dir), t);
+		addQuad(OPERATIONS.VERIFY, $$[$0-2].dir, 0, val.size-1, _$[$0-5].first_line);
+		addQuad(OPERATIONS.SUM, $$[$0-2].dir, addConstant(val.dir), t, _$[$0-5].first_line);
 		valStack.pop();
 		this.$ = { dir: t+1000000 }
 	
@@ -282,15 +277,23 @@ break;
 case 30:
 
 		var val = getVariableFromName($$[$0]);
+		if(!val){
+			return { error: { line: _$[$0].first_line, type: ERRORS.ACCESS_NO_VAR } }
+		}
+		if(val.array){
+			return { error: { line: _$[$0].first_line, type: ERRORS.ACCESS_IS_ARRAY } }
+		}
 		this.$ = val;
 	
 break;
 case 32:
 
-		var fc = functionCall($$[$0-5], $$[$0-2]);
-		if(fc.return){
+		var fc = functionCall($$[$0-5], $$[$0-2], _$[$0-5].first_line);
+		if(fc.error){
+			return { error: { line: _$[$0-5].first_line, error: fc.error } }
+		}else if(fc.return){
 			var t = addTemp();
-			addQuad(OPERATIONS.ASSIGN, fc.name, -1, t);
+			addQuad(OPERATIONS.ASSIGN, fc.name, -1, t, _$[$0-5].first_line);
 			this.$ = { dir: t }
 		}else{
 			this.$ = fc;
@@ -337,44 +340,44 @@ case 44:
 break;
 case 45:
 
-	startIf();
+	startIf(_$[$0].first_line);
 
 break;
 case 46:
 
 	elseStack[elseStack.length-1].push(count);
-	addQuad(OPERATIONS.GOTO, -1, -1, null);
-	endIf();
+	addQuad(OPERATIONS.GOTO, -1, -1, null, _$[$0].first_line);
+	endIf(_$[$0].first_line);
 
 break;
 case 47:
 
-	elseIf();
+	elseIf(_$[$0].first_line);
 
 break;
 case 48:
 
-		addQuad(OPERATIONS.MOVE, -1, -1, -1);
+		addQuad(OPERATIONS.MOVE, -1, -1, -1, _$[$0-2].first_line);
 	
 break;
 case 49:
 
-		addQuad(OPERATIONS.ROTATE, -1, -1, -1);
+		addQuad(OPERATIONS.ROTATE, -1, -1, -1, _$[$0-2].first_line);
 	
 break;
 case 50:
 
-		addQuad(OPERATIONS.PICKUP, -1, -1, -1);
+		addQuad(OPERATIONS.PICKUP, -1, -1, -1, _$[$0-2].first_line);
 	
 break;
 case 51:
 
-		addQuad(OPERATIONS.PUTDOWN, -1, -1, -1);
+		addQuad(OPERATIONS.PUTDOWN, -1, -1, -1, _$[$0-2].first_line);
 	
 break;
 case 52:
 
-		addQuad(OPERATIONS.PRINT, -1, -1, $$[$0-1].dir);
+		addQuad(OPERATIONS.PRINT, -1, -1, $$[$0-1].dir, _$[$0-3].first_line);
 	
 break;
 case 53:
@@ -396,12 +399,10 @@ case 56:
 
 		var val = getVariableFromName($$[$0-1]);
 		if(!val){
-			// THROW ERROR
-			throw new Error('No such var '+$$[$0-3] + ' - LINE: '+_$[$0-3].first_line);
+			return { error: { line: _$[$0-3].first_line, type: ERRORS.ACCESS_NO_VAR } }
 		}
 		if(!val.array){
-			// THROW ERROR
-			throw new Error('Var is not array '+$$[$0-3] + ' - LINE: '+_$[$0-3].first_line);
+			return { error: { line: _$[$0-3].first_line, type: ERRORS.ACCESS_NOT_ARRAY } }
 		}
 		var t = addTemp();
 		addQuad(OPERATIONS.LENGTH, val.dir, -1, t);
@@ -438,28 +439,33 @@ case 64:
 		if($$[$0-1]=='start'){
 			declareStart();
 		}
-		this.$ = declareFunction($$[$0-1], $$[$0]);
+		var fn = declareFunction($$[$0-1], $$[$0]);
+		if(fn.error===false){
+			this.$ = fn.dir;
+		}else{
+			return { error: { line: _$[$0-2].first_line, type: fn.error } };
+		}
 	
 break;
 case 66:
 
 		currFunc = -1;
-		addQuad(OPERATIONS.ENDPROC, -1, -1, -1);
+		addQuad(OPERATIONS.ENDPROC, -1, -1, -1, _$[$0].first_line);
 	
 break;
 case 68:
 
-	defineLoop();
+	defineLoop(_$[$0].first_line);
 
 break;
 case 69:
 
-	startLoop();
+	startLoop(_$[$0].first_line);
 
 break;
 case 70:
 
-	endLoop();
+	endLoop(_$[$0].first_line);
 
 break;
 case 79:
@@ -467,11 +473,11 @@ case 79:
 		var dir = $$[$0].dir;
 		if(!$$[$0].temp){
 			var t = addTemp();
-			addQuad(OPERATIONS.ASSIGN, dir, -1, t);
+			addQuad(OPERATIONS.ASSIGN, dir, -1, t, _$[$0-2].first_line);
 			dir = t;
 		}
-		addQuad(OPERATIONS.RETURN, -1, -1, dir);
-		addQuad(OPERATIONS.ENDPROC, -1, -1, -1);
+		addQuad(OPERATIONS.RETURN, -1, -1, dir, _$[$0-2].first_line);
+		addQuad(OPERATIONS.ENDPROC, -1, -1, -1, _$[$0-2].first_line);
 		this.$ = $$[$0];
 	
 break;
@@ -757,6 +763,28 @@ parse: function parse(input) {
 		PUTDOWN: 29
 	}
 
+	var ERRORS = {
+		COMPILER_ERROR: 0,
+
+		ASSIGN_INCORRECT_TYPE: 100,
+		ASSIGN_NO_VAR: 101,
+		ASSIGN_TO_ARRAY: 102,
+		ASSIGN_TO_NOT_ARRAY: 103,
+
+		DECLARE_REDECLARATION: 200,
+
+		OPERATION_INCOMPATIBLE_TYPES: 300,
+
+		METHOD_NO_METHOD: 400,
+		METHOD_REDECLARATION: 401,
+		METHOD_REDECLARATION_VARIABLE: 402,
+		METHOD_PARAM_LENGTH: 403,
+
+		ACCESS_NO_VAR: 500,
+		ACCESS_NOT_ARRAY: 501,
+		ACCESS_IS_ARRAY: 502
+	}
+
 	function begin(){
 		QUADS = [];
 		VARS = [];
@@ -776,9 +804,9 @@ parse: function parse(input) {
 	}
 
 	// Executes right after "then"
-	function startIf(){
+	function startIf(line){
 		var cond = valStack.pop();
-		addQuad(OPERATIONS.GOTOF, cond, -1, null);
+		addQuad(OPERATIONS.GOTOF, cond, -1, null, line);
 		jumpStack.push(count-1);
 	}
 
@@ -789,9 +817,9 @@ parse: function parse(input) {
 	}
 
 	// Executes before if "else"
-	function elseIf(){
+	function elseIf(line){
 		var f = jumpStack.pop();
-		addQuad(OPERATIONS.GOTO, -1, -1, null);
+		addQuad(OPERATIONS.GOTO, -1, -1, null, line);
 		jumpStack.push(count-1);
 		console.log(f)
 		QUADS[f][3] = count;
@@ -800,12 +828,10 @@ parse: function parse(input) {
 	// Declares a function. After "fun"
 	function declareFunction(name, params){
 		if(FUNCS.findIndex(a=>a.name==name)!=-1){
-			//TODO: THROW ERR
-			return;
+			return { error: ERRORS.METHOD_REDECLARATION };
 		}
 		if(VARS.findIndex(a=>a.name==name)!=-1){
-			//TODO: THROW ERR
-			return;
+			return { error: ERRORS.METHOD_REDECLARATION_VARIABLE };
 		}
 		var vars = [];
 		for(var i of params){
@@ -824,7 +850,7 @@ parse: function parse(input) {
 		VARS.push({
 			name, type: 'func', val: -1, function: true
 		});
-		return FUNCS.length-1;
+		return { dir: FUNCS.length-1, error: false };
 	}
 
 	// Declares a repeat. After "repeat"
@@ -833,37 +859,33 @@ parse: function parse(input) {
 	}
 
 	// Declares that a loop started. After "do"
-	function startLoop(){
-		addQuad(OPERATIONS.GOTOF, valStack.pop(), -1, null);
+	function startLoop(line){
+		addQuad(OPERATIONS.GOTOF, valStack.pop(), -1, null, line);
 		jumpStack.push(count-1);
 	}
 
 	// Declares that a loop has ended. Before "end"
-	function endLoop(){
+	function endLoop(line){
 		var f = jumpStack.pop();
 		var ret = jumpStack.pop();
-		addQuad(OPERATIONS.GOTO, -1, -1, ret);
+		addQuad(OPERATIONS.GOTO, -1, -1, ret, line);
 		QUADS[f][3] = count;
 	}
 
-	function functionCall(name, params){
+	function functionCall(name, params, line){
 		var func = FUNCS.find(a=>a.name==name);
 		if(!func){
-			// TODO: THROW ERROR
-			console.log("Invalid function");
-			return false;
+			return { error: ERRORS.METHOD_NO_METHOD };
 		}
 		if(func.params.length!=params.length){
-			// TODO: THROW ERROR
-			console.log("Incorrect params length");
-			return false;
+			return { error: ERRORS.METHOD_PARAM_LENGTH };
 		}
-		addQuad(OPERATIONS.ERA, name, -1, -1);
+		addQuad(OPERATIONS.ERA, name, -1, -1, line);
 		for(var i=0; i<params.length; i++){
-			addQuad(OPERATIONS.PARAM, i, -1, params[i].dir)
+			addQuad(OPERATIONS.PARAM, i, -1, params[i].dir, line)
 			valStack.pop();
 		}
-		addQuad(OPERATIONS.GOSUB, -1, -1, func.dir);
+		addQuad(OPERATIONS.GOSUB, -1, -1, func.dir, line);
 
 		if(func.return){
 			return FUNCS.find(a=>a.name==name);
@@ -895,6 +917,7 @@ parse: function parse(input) {
 	// Defines a variable
 	function defineVariable(name, type, size=false){
 		var bank = currFunc==-1 ? VARS : FUNCS[currFunc].vars
+		if(bank.findIndex(a=>a.name==name)!=-1) return false;
 		var dir = bank.reduce((a,b)=>a+b.size, 0) + (currFunc==-1 ? 0 : 10000);
 		var newVal = {
 			name, type, dir,
@@ -979,9 +1002,9 @@ parse: function parse(input) {
 		return VARS[ix];
 	}
 
-	function addQuad(opCode, dir1, dir2, dir3){
+	function addQuad(opCode, dir1, dir2, dir3, line){
 		// console.log(`${count}:\t ${opGetSymbol(opCode)}\t${dir1}\t${dir2}\t${dir3}\t`)
-		QUADS.push([opCode, dir1, dir2, dir3]);
+		QUADS.push([opCode, dir1, dir2, dir3, line]);
 		count += 1;
 		return dir3;
 	}
@@ -1037,7 +1060,7 @@ parse: function parse(input) {
 		opStack.push(op);
 	}
 
-	function generateQuad(){
+	function generateQuad(line){
 		var peek = opStack.pop();
 		var temp;
 		var valDer = valStack.pop(), valIz = valStack.pop();
@@ -1047,7 +1070,7 @@ parse: function parse(input) {
 		}else{
 			temp = addTemp();
 		}
-		addQuad(peek, peek==OPERATIONS.ASSIGN ? valDer : valIz, peek==OPERATIONS.ASSIGN ? -1 : valDer, temp)
+		addQuad(peek, peek==OPERATIONS.ASSIGN ? valDer : valIz, peek==OPERATIONS.ASSIGN ? -1 : valDer, temp, line)
 		valStack.push(temp);
 		return { dir: temp }
 	}

@@ -32,6 +32,14 @@ var OPERATIONS = {
 	PICKUP: 28,
 	PUTDOWN: 29
 }
+
+var ERRORS = {
+	ASSIGN_INCORRECT_TYPE: 0,
+	ASSIGN_NO_VAR: 1,
+
+	OPERATION_INCOMPATIBLE_TYPES: 100
+}
+
 function opGetSymbol(op){
 	var t = [
 		'+','-','x','/','AND','!=','OR','==','>','<','>=','<=','=', 
@@ -44,7 +52,7 @@ function opGetSymbol(op){
 }
 
 class VM {
-	constructor(quads, vars, funcs, constants, temps){
+	constructor(quads, vars, funcs, constants){
 		this.quads = quads;
 		this.cursor = 0;
 		this.vars = vars;
@@ -59,7 +67,7 @@ class VM {
 		this.jumps = [];
 
 		// Global memory
-		this.memory = new Array(this.vars.reduce((a,b)=>a+(b.size || 0), 0));
+		this.memory = this.vars ? new Array(this.vars.reduce((a,b)=>a+(b.size || 0), 0)) : [];
 
 		for(var i of this.funcs){
 			i.memory = {
@@ -106,6 +114,10 @@ class VM {
 		return this.output;
 	}
 
+	getQuads(){
+		return this.quads;
+	}
+
 	currentFunc(offset=0){
 		return this.funcStack.length==0 ? -1 : this.funcStack[this.funcStack.length-1-offset];
 	}
@@ -141,8 +153,28 @@ class VM {
 		if(dir>=10000 && dir<20000){ // FUNCTION VAR
 			var fn = this.funcs[this.currentFunc()];
 			var var_memory = fn.memory.vars[fn.memory.vars.length-1-bankOffset][dir-10000];
+			var var_orig = false;
+			for(var i of fn.vars.sort((a,b)=>a.dir-b.dir)){
+				if(i.array){
+					if(dir>=i.dir && dir<(i.dir+i.size)){
+						var_orig = i;
+						break;
+					}
+				}else{
+					if(i.dir==dir){
+						var_orig = i;
+						break;
+					}
+				}
+			}
 			return {
-				val: var_memory
+				name: var_orig.name,
+				val: var_memory,
+				array: var_orig.array,
+				size: var_orig.size,
+				type: var_orig.type,
+				dir: var_orig.dir,
+				index: dir-var_orig.dir
 			};
 		}else if(dir>=20000 && dir<100000){ // TEMP
 			var fn = this.funcs[this.currentFunc()];
@@ -151,23 +183,25 @@ class VM {
 				name: 't'+(dir-20000),
 				val: val,
 				dir,
-				temp: true
+				temp: true,
+				type: isNaN(val) ? 'boolean' : 'decimal'
 			}
 		}else if(dir>=100000 && dir<999990){ // CONSTANT
 			return {
 				name: 'c'+this.const[dir-100000].toString(),
 				val: this.const[dir-100000],
+				type: isNaN(this.const[dir-100000]) ? 'boolean' : 'decimal',
 				dir,
 				constant: true
 			}
 		}else if(dir>999990 && dir<1000000){ // SPECIALS
 			switch(dir){
 				case 999990: // INVENTORY
-					return { val: 0, dir };
+					return { val: 0, dir, name: 'CHECK_INV', type: 'decimal' };
 				case 999991: // CHECK WALL
-					return { val: true, dir };
+					return { val: true, dir, name: 'CHECK_WALL', type: 'boolean' };
 				case 999992: // CHECK BOX
-					return { val: false, dir };
+					return { val: false, dir, name: 'CHECK_BOX', type: 'boolean' };
 			}
 		}else if(dir>=1000000){
 			return this.getMemory(this.getMemory(dir-1000000).val);
@@ -180,11 +214,12 @@ class VM {
 	}
 
 	executeQuad(quad){
-		var q1, q2, q3, q4;
+		var q1, q2, q3, q4, line;
 		q1 = quad[0];
 		q2 = quad[1];
 		q3 = quad[2];
 		q4 = quad[3];
+		line = quad[4];
 		switch(q1){
 			// JUMPS
 			case OPERATIONS.GOTO:
@@ -301,14 +336,11 @@ class VM {
 
 			// SPECIAL FUNCTIONS
 			case OPERATIONS.PRINT:
-				// console.log(q4, this.funcs[this.currentFunc()].memory, this.getMemory(q4));
+				console.log(q4, this.funcs[this.currentFunc()].memory, this.getMemory(q4));
 				this.output.push(this.getMemory(q4).val);
 				break;
 			case OPERATIONS.VERIFY:
 				var val = this.getMemory(q2).val;
-				if(val<q3 || val>q4){
-					this.error = true;
-				}
 				break;
 			case OPERATIONS.LENGTH:
 				this.setMemory(q4, this.vars[q2].size);

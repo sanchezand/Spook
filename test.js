@@ -4,7 +4,13 @@ const fs = require('fs');
 
 var testCode = fs.readFileSync(__dirname+'/tests/test.ca').toString()
 var res = spook.parse(testCode);
-var vm = new VM(res.quads, res.vars, res.funcs, res.const, res.temps);
+
+if(res.error){
+	console.log("ERROR", res.error);
+	return;
+}
+
+var vm = new VM(res.quads, res.vars, res.funcs, res.const);
 var out = vm.doQuads();
 
 console.log("==========  OUTPUT  ==========");
