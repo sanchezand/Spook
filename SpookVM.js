@@ -35,6 +35,7 @@ var OPERATIONS = {
 
 var ERRORS = {
 	COMPILER_ERROR: 0,
+	MISSING_START: 1,
 
 	ASSIGN_INCORRECT_TYPE: 100,
 	ASSIGN_NO_VAR: 101,
@@ -45,6 +46,8 @@ var ERRORS = {
 
 	OPERATION_INCOMPATIBLE_TYPES: 300,
 	OPERATION_INCOMPATIBLE_OPERATION: 301,
+	OPERATION_DIVIDE_BY_ZERO: 302,
+
 
 	METHOD_NO_METHOD: 400,
 	METHOD_REDECLARATION: 401,
@@ -300,7 +303,12 @@ class VM {
 				break;
 			case OPERATIONS.DIVIDE:
 				// console.log(this.getMemory(q2).val, '/', this.getMemory(q3).val)
-				this.setMemory(q4, this.getMemory(q2).val/this.getMemory(q3).val);
+				var d1 = this.getMemory(q2).val, d2 = this.getMemory(q3).val
+				if(d2==0){
+					this.error = { type: ERRORS.OPERATION_DIVIDE_BY_ZERO, line: line };
+				}else{
+					this.setMemory(q4, this.getMemory(q2).val/this.getMemory(q3).val);
+				}
 				break;
 			case OPERATIONS.ASSIGN:
 				if(isNaN(q2)){
