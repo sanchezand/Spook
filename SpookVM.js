@@ -130,11 +130,31 @@ class VM {
 		return this.moves;
 	}
 
+	getFunctionVar(dir){
+		var fn = this.funcs[this.currentFunc()];
+		var var_orig = false;
+		for(var i of fn.vars.sort((a,b)=>a.dir-b.dir)){
+			if(i.array){
+				if(dir>=i.dir && dir<(i.dir+i.size)){
+					var_orig = i;
+					break;
+				}
+			}else{
+				if(i.dir==dir){
+					var_orig = i;
+					break;
+				}
+			}
+		}
+		return var_orig;
+	}
+
 	setMemory(dir, val, bankOffset=0){
 		if(dir>=10000 && dir<20000){ // FUNCTION VAR
 			// Not proud of this.
 			var mem = this.funcs[this.currentFunc()].memory.vars.length-1-bankOffset;
-			this.funcs[this.currentFunc()].memory.vars[mem][dir-10000] = val;
+			var var_orig = this.getFunctionVar(dir);
+			this.funcs[this.currentFunc()].memory.vars[mem][dir-10000] = var_orig.type=='decimal' ? val : val>0;
 			return false;
 		}else if(dir>=20000 && dir<100000){ // TEMP
 			var temps = this.funcs[this.currentFunc()].memory.temps.length-1-bankOffset;
@@ -157,20 +177,7 @@ class VM {
 		if(dir>=10000 && dir<20000){ // FUNCTION VAR
 			var fn = this.funcs[this.currentFunc()];
 			var var_memory = fn.memory.vars[fn.memory.vars.length-1-bankOffset][dir-10000];
-			var var_orig = false;
-			for(var i of fn.vars.sort((a,b)=>a.dir-b.dir)){
-				if(i.array){
-					if(dir>=i.dir && dir<(i.dir+i.size)){
-						var_orig = i;
-						break;
-					}
-				}else{
-					if(i.dir==dir){
-						var_orig = i;
-						break;
-					}
-				}
-			}
+			var var_orig = this.getFunctionVar(dir);
 			return {
 				name: var_orig.name,
 				val: var_memory,
