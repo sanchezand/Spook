@@ -1,3 +1,5 @@
+var playerImg = new Image;
+playerImg.src = "https://upload.wikimedia.org/wikipedia/en/1/1f/Green_Arrow_Up%28new%29.png";
 function Editor(canvas){
 	canvas.selectable = false;
 	var self = this;
@@ -20,7 +22,8 @@ function Editor(canvas){
 	this.stage = {
 		walls: [],
 		boxes: [],
-		player: [0,0]
+		player: [0,0],
+		playerRotation: 0
 	}
 
 	canvas.addEventListener('mousemove', function(e){
@@ -131,9 +134,16 @@ Editor.prototype.drawStage = function(){
 		this.ctx.fillRect(pX, pY, 20, 20);
 		this.ctx.fillStyle = "#000000";
 		this.ctx.fillText(i[2], pX+10, pY+16); 
-	}
+	}	
 
-	
+	var playerX = Math.floor(35+(this.stage.player[0]*this.gridSize)-(this.gridSize/4));
+	var playerY = Math.floor(35+(this.stage.player[1]*this.gridSize)-(this.gridSize/4));
+	// this.ctx.save();
+	// this.ctx.translate(this.canvas.width/2,this.canvas.height/2);
+	// this.ctx.rotate(90*Math.PI/180);
+	this.ctx.drawImage(playerImg, playerX, playerY, 20, 20);
+	// this.ctx.restore();
+
 }
 
 Editor.prototype.drawConstructWalls = function(){
