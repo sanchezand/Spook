@@ -122,6 +122,7 @@
 		var vars = [];
 		for(var i of params){
 			// var j = defineVariable(`${name}#${i.name}`, i.type)
+			if(vars.findIndex(a=>a.name==i.name)) return { error: ERRORS.DECLARE_REDECLARATION };
 			vars.push({ ...i, dir: vars.length+10000 });
 		}
 		FUNCS.push({
