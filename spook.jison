@@ -51,6 +51,7 @@
 
 	var ERRORS = {
 		COMPILER_ERROR: 0,
+		MISSING_START: 1,
 
 		ASSIGN_INCORRECT_TYPE: 100,
 		ASSIGN_NO_VAR: 101,
@@ -122,7 +123,8 @@
 		var vars = [];
 		for(var i of params){
 			// var j = defineVariable(`${name}#${i.name}`, i.type)
-			if(vars.findIndex(a=>a.name==i.name)) return { error: ERRORS.DECLARE_REDECLARATION };
+			// console.log(vars.findIndex(a=>a.name==i.name))
+			if(vars.findIndex(a=>a.name==i.name)!=-1) return { error: ERRORS.DECLARE_REDECLARATION };
 			vars.push({ ...i, dir: vars.length+10000 });
 		}
 		FUNCS.push({
@@ -471,6 +473,7 @@ start:
 		// // console.log(FUNCS);
 		// // console.log(QUADS);
 		var j = 0;
+		if(QUADS[1][3]==null) return { error: { line: 1, type: ERRORS.MISSING_START } }
 		for(var i of QUADS){
 			console.log(`[${i[4]}]: ${j}:\t ${i[0]}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
 			j++;
