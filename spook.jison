@@ -28,7 +28,7 @@
 		LESSTHN: 10,
 		GTR_EQTHN: 11,
 		LESS_EQTHN: 12,
-		ASSIGN: 13,
+		RAND: 13,
 		GOTO: 14,
 		GOTOF: 15,
 		GOTOT: 16,
@@ -60,6 +60,7 @@
 		DECLARE_REDECLARATION: 200,
 
 		OPERATION_INCOMPATIBLE_TYPES: 300,
+		OPERATION_INCOMPATIBLE_OPERATION: 301,
 
 		METHOD_NO_METHOD: 400,
 		METHOD_REDECLARATION: 401,
@@ -107,7 +108,6 @@
 		var f = jumpStack.pop();
 		addQuad(OPERATIONS.GOTO, -1, -1, null, line);
 		jumpStack.push(count-1);
-		console.log(f)
 		QUADS[f][3] = count;
 	}
 
@@ -167,8 +167,10 @@
 			return { error: ERRORS.METHOD_PARAM_LENGTH };
 		}
 		addQuad(OPERATIONS.ERA, name, -1, -1, line);
+		var size = 0;
 		for(var i=0; i<params.length; i++){
-			addQuad(OPERATIONS.PARAM, i, -1, params[i].dir, line)
+			addQuad(OPERATIONS.PARAM, size, -1, params[i].dir, line)
+			size += parseInt(func.params[i].size);
 			valStack.pop();
 		}
 		addQuad(OPERATIONS.GOSUB, -1, -1, func.dir, line);
@@ -204,7 +206,7 @@
 	function defineVariable(name, type, size=false){
 		var bank = currFunc==-1 ? VARS : FUNCS[currFunc].vars
 		if(bank.findIndex(a=>a.name==name)!=-1) return false;
-		var dir = bank.reduce((a,b)=>a+b.size, 0) + (currFunc==-1 ? 0 : 10000);
+		var dir = bank.reduce((a,b)=>a+(b.size||1), 0) + (currFunc==-1 ? 0 : 10000);
 		var newVal = {
 			name, type, dir,
 		}
@@ -226,30 +228,53 @@
 	// Get a variable value
 	function getVariable(dir){
 		if(dir==-1) return false;
-		if(dir>=10000 && dir<10000){ // FUNCTION VAR
-			return {
-				...FUNCS[currFunc].vars[dir-10000],
-				dir
+		if(dir>=10000 && dir<20000){ // FUNCTION VAR
+			var fn = FUNCS[currFunc];
+			var var_orig;
+			for(var i of fn.vars.sort((a,b)=>a.dir-b.dir)){
+				if(i.array){
+					if(dir>=i.dir && dir<(i.dir+i.size)){
+						var_orig = i;
+						break;
+					}
+				}else{
+					if(i.dir==dir){
+						var_orig = i;
+						break;
+					}
+				}
 			}
+			return {
+				name: var_orig.name,
+				array: var_orig.array,
+				size: var_orig.size,
+				type: var_orig.type,
+				index: dir-var_orig.dir,
+				dir,
+			};
 		}else if(dir>=20000 && dir<100000){ // TEMP
 			return {
 				name: 't'+(dir-20000),
 				val: FUNCS[currFunc].temps[dir-20000],
 				dir,
-				temp: true
+				temp: true,
+				type: isNaN(FUNCS[currFunc].temps[dir-20000]) ? 'bool' : 'decimal'
 			}
 		}else if(dir>=100000 && dir<999990){ // CONSTANT
 			return {
-				name: CONST[dir-100000].toString(),
+				name: 'c'+CONST[dir-100000].toString(),
 				val: CONST[dir-100000],
 				dir,
-				constant: true
+				constant: true,
+				type: isNaN(CONST[dir-100000]) ? 'bool' : 'decimal'
 			}
 		}else if(dir>999990 && dir<1000000){ // SPECIALS
 			var name;
+			var type = 'bool';
 			switch(dir){
 				case 999990: // INVENTORY
-					name = 'INV'
+					name = 'INV';
+					type = 'decimal';
 				break;
 				case 999991: // CHECK WALL
 					name = 'WALL'
@@ -258,7 +283,7 @@
 					name = 'BOX'
 				break;
 			}
-			return { name, dir }
+			return { name, dir, type }
 		}else if(dir>=1000000){
 			var v = getVariable(dir-1000000);;
 			v.name = '(' + v.name + ')';
@@ -297,8 +322,8 @@
 
 	function opGetSymbol(op){
 		var t = [
-			'+','-','x','/','AND','!=','OR','==','>','<','>=','<=','=', 
-			'GOTO', 'GOTOF', 'GOTOT', 'PRINT',
+			'=', '+','-','x','/','AND','!=','OR','==','>','<','>=','<=',
+			'RAND', 'GOTO', 'GOTOF', 'GOTOT', 'PRINT',
 			'ERA', 'GOSUB', 'END', 'RET', 'PARAM', 
 			'VER', 'LEN', 'VALDIR',
 			'MOVE', 'ROT', 'PKUP', 'PDWN'
@@ -351,6 +376,13 @@
 		var temp;
 		var valDer = valStack.pop(), valIz = valStack.pop();
 
+		// var varD = getVariable(valDer);
+		// // console.log(varD)
+		// if(varD.type!='decimal' && !varD.temp) return { error: ERRORS.OPERATION_INCOMPATIBLE_OPERATION };
+		// var varI = getVariable(valIz);
+		// // console.log(varI)
+		// if(varI.type!='decimal' && !varI.temp) return { error: ERRORS.OPERATION_INCOMPATIBLE_OPERATION };
+	
 		if(peek==OPERATIONS.ASSIGN){
 			temp = valIz;
 		}else{
@@ -404,6 +436,7 @@
 "return"							return 'RETURN'
 "print"							return 'OUT'
 "length"							return 'LEN'
+"rand"							return 'RAND'
 "forward"						return 'FORWARD'
 "rotateRight"					return 'ROTRIGHT'
 "pickUp"							return 'PICKUP'
@@ -438,7 +471,7 @@ start:
 		// // console.log(QUADS);
 		var j = 0;
 		for(var i of QUADS){
-			console.log(`[${i[4]}]: ${j}:\t ${opGetSymbol(i[0])}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
+			console.log(`[${i[4]}]: ${j}:\t ${i[0]}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
 			j++;
 		}
 		return {
@@ -464,7 +497,7 @@ vars:
 	DEF idlist ':' type {
 		for(var i of $2){
 			var added = defineVariable(i, $4);
-			if(!added) {
+			if(added === false) {
 				return { error: { line: @1.first_line, type: ERRORS.DECLARE_REDECLARATION } }
 			}
 		}
@@ -472,7 +505,7 @@ vars:
 	| DEF idlist ':' type '[' NUMBER ']' {
 		for(var i of $2){
 			var added = defineVariable(i, $4, parseInt($6))
-			if(!added){
+			if(added === false){
 				return { error: { line: @1.first_line, type: ERRORS.DECLARE_REDECLARATION } }
 			}
 		}
@@ -569,7 +602,12 @@ exp:
 postTermino: 
 	{
 		if([OPERATIONS.SUM, OPERATIONS.MINUS].indexOf(opStack[opStack.length-1])!=-1){
-			$$ = generateQuad(@1.first_line);
+			var q = generateQuad(@1.first_line);
+			if(q.error){
+				return { error: { line: @1.first_line, type: q.error } };
+			}else{
+				$$ = q;
+			}
 		}else $$ = false;
 	};
 
@@ -583,7 +621,12 @@ termino:
 postFactor: 
 	{
 		if([OPERATIONS.MULT, OPERATIONS.DIVIDE].indexOf(opStack[opStack.length-1])!=-1){
-			$$ = generateQuad(@1.first_line);
+			var q = generateQuad(@1.first_line);
+			if(q.error){
+				return { error: { line: @1.first_line, type: q.error } };
+			}else{
+				$$ = q;
+			}
 		}else $$ = false;
 	};
 	
@@ -642,9 +685,6 @@ id:
 		var val = getVariableFromName($1);
 		if(!val){
 			return { error: { line: @1.first_line, type: ERRORS.ACCESS_NO_VAR } }
-		}
-		if(val.array){
-			return { error: { line: @1.first_line, type: ERRORS.ACCESS_IS_ARRAY } }
 		}
 		$$ = val;
 	}
@@ -759,8 +799,13 @@ queries:
 			return { error: { line: @1.first_line, type: ERRORS.ACCESS_NOT_ARRAY } }
 		}
 		var t = addTemp();
-		addQuad(OPERATIONS.LENGTH, val.dir, -1, t);
+		addQuad(OPERATIONS.LENGTH, val.dir, -1, t, @1.first_line);
 		$$ = { dir: t }
+	}
+	| RAND '(' expression ',' expression ')' {
+		var t = addTemp();
+		addQuad(OPERATIONS.RAND, $3.dir, $5.dir, t, @1.first_line);
+		$$ = { dir: t };
 	}
 	;
 
@@ -778,7 +823,7 @@ funparams1:
 		$$ = [ { name: $1, type: $3, array: false, size: 1 }, ...$4 ]
 	}
 	| NAME ':' type '[' NUMBER ']' funparams2 {
-		$$ = [ { name: $1, type: $3, array: true, size: $5 }, ...$7 ]
+		$$ = [ { name: $1, type: $3, array: true, size: parseInt($5) }, ...$7 ]
 	}
 	;
 
@@ -790,7 +835,7 @@ funparams2:
 		$$ = [ { name: $2, type: $4 }, ...$5 ]
 	}
 	| ',' NAME ':' type '[' NUMBER ']' funparams2 {
-		$$ = [ { name: $2, type: $4, size: $6 }, ...$8 ]
+		$$ = [ { name: $2, type: $4, size: parseInt($6) }, ...$8 ]
 	}
 	;
 

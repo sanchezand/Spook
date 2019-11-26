@@ -11,9 +11,20 @@ if(res.error){
 }
 
 var vm = new VM(res.quads, res.vars, res.funcs, res.const);
-var out = vm.doQuads();
+var { output, error, moves } = vm.doQuads();
+
+if(error){
+	console.log(output);
+	console.log(error);
+	return;
+}
 
 console.log("==========  OUTPUT  ==========");
-for(var i=0; i<out.length; i++){
-	console.log(`[${i+1}]:`, out[i]);
+for(var i=0; i<output.length; i++){
+	console.log(`[${i+1}]:`, output[i]);
+}
+
+console.log("\n\n==========  MOVES  ==========");
+for(var i=0; i<moves.length; i++){
+	console.log(`[${i+1}]:`, moves[i]);
 }

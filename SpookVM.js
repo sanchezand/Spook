@@ -12,7 +12,7 @@ var OPERATIONS = {
 	LESSTHN: 10,
 	GTR_EQTHN: 11,
 	LESS_EQTHN: 12,
-	ASSIGN: 13,
+	RAND: 13,
 	GOTO: 14,
 	GOTOF: 15,
 	GOTOT: 16,
@@ -34,10 +34,27 @@ var OPERATIONS = {
 }
 
 var ERRORS = {
-	ASSIGN_INCORRECT_TYPE: 0,
-	ASSIGN_NO_VAR: 1,
+	COMPILER_ERROR: 0,
 
-	OPERATION_INCOMPATIBLE_TYPES: 100
+	ASSIGN_INCORRECT_TYPE: 100,
+	ASSIGN_NO_VAR: 101,
+	ASSIGN_TO_ARRAY: 102,
+	ASSIGN_TO_NOT_ARRAY: 103,
+
+	DECLARE_REDECLARATION: 200,
+
+	OPERATION_INCOMPATIBLE_TYPES: 300,
+	OPERATION_INCOMPATIBLE_OPERATION: 301,
+
+	METHOD_NO_METHOD: 400,
+	METHOD_REDECLARATION: 401,
+	METHOD_REDECLARATION_VARIABLE: 402,
+	METHOD_PARAM_LENGTH: 403,
+
+	ACCESS_NO_VAR: 500,
+	ACCESS_NOT_ARRAY: 501,
+	ACCESS_IS_ARRAY: 502,
+	ACCESS_ARRAY_INDEX: 503,
 }
 
 function opGetSymbol(op){
@@ -81,37 +98,20 @@ class VM {
 
 	doQuads(){
 		this.cursor = -1;
-
-		for(var q of this.quads){
-			// console.log(`${this.cursor}:\t ${opGetSymbol(q[0])}\t${q[1]}\t${q[2]}\t${q[3]}\t`)
-		}
-
-		// console.log("\n\n=============== QUADS ================\n");
 		while(this.cursor<this.quads.length){
 			this.cursor++;
 			var q = this.quads[this.cursor];
 			if(!q) break;
-			// console.log(`${this.cursor}:\t ${opGetSymbol(q[0])}\t${q[1]}\t${q[2]}\t${q[3]}\t`)
 			this.executeQuad(q);
 			if(this.error){
-				// console.log("\n\n=============== ERROR ================");
 				break;
 			}
 		}
-		
-		// console.log("========================");
-		// for(var i of this.vars){
-		// 	if(i.function)continue;
-		// 	if(i.array){
-		// 		console.log(i.name, '=', this.memory.slice(i.dir, i.dir+i.size))
-		// 	}else{
-		// 		console.log(i.name, '=', this.memory[i.dir])
-		// 	}
-		// }
-		// console.log("");
-		// console.log(this.const);
-
-		return this.output;
+		return {
+			error: this.error,
+			output: this.output,
+			moves: this.moves
+		};
 	}
 
 	getQuads(){
@@ -135,17 +135,21 @@ class VM {
 			// Not proud of this.
 			var mem = this.funcs[this.currentFunc()].memory.vars.length-1-bankOffset;
 			this.funcs[this.currentFunc()].memory.vars[mem][dir-10000] = val;
+			return false;
 		}else if(dir>=20000 && dir<100000){ // TEMP
 			var temps = this.funcs[this.currentFunc()].memory.temps.length-1-bankOffset;
 			this.funcs[this.currentFunc()].memory.temps[temps][dir-20000] = val;
+			return false;
 		}else if(dir>=100000 && dir<999990){ // CONSTANT
-			return;
+			return false;
 		}else if(dir>999990 && dir<1000000){ // SPECIALS
-			return;
+			return false;
 		}else if(dir>=1000000){
 			this.setMemory(this.getMemory(dir-1000000).val, val);
+			return false;
 		}else{
 			this.memory[dir] = val;
+			return false;
 		}
 	}
 
@@ -220,6 +224,7 @@ class VM {
 		q3 = quad[2];
 		q4 = quad[3];
 		line = quad[4];
+		// console.log(`[${line}]: ${opGetSymbol(q1)}\t${q2}\t${q3}\t${q4}\t`)
 		switch(q1){
 			// JUMPS
 			case OPERATIONS.GOTO:
@@ -292,9 +297,9 @@ class VM {
 				break;
 			case OPERATIONS.ASSIGN:
 				if(isNaN(q2)){
+					console.log(line)
 					var fn = this.funcs.find(a=>a.name==q2);
 					var val = fn.return_values.pop();
-					// console.log("Return:", val)
 					this.setMemory(q4, val);
 				}else{
 					this.setMemory(q4, this.getMemory(q2).val)
@@ -307,17 +312,24 @@ class VM {
 			case OPERATIONS.ERA:
 				var fx = this.funcs.findIndex(a=>a.name==q2)
 				this.prepareFunction = fx;
-				this.prepareMemory.vars = new Array(this.funcs[fx].vars.reduce((a,b)=>a+(b.size||1), 0));
+				var varSize = this.funcs[fx].vars.reduce((a,b)=>a+(parseInt(b.size)||1), 0);
+				this.prepareMemory.vars = new Array(varSize);
 				this.prepareMemory.temps = new Array(this.funcs[fx].temps);
 				break;
 			case OPERATIONS.PARAM:
-				this.prepareMemory.vars[q2] = this.getMemory(q4).val;
+				var param = this.getMemory(q4);
+				if(param.array){
+					for(var i=0; i<param.size; i++){
+						this.prepareMemory.vars[parseInt(q2+i)] = this.getMemory(param.dir+i).val;
+					}
+				}else{
+					this.prepareMemory.vars[q2] = param.val;
+				}
 				break;
 			case OPERATIONS.GOSUB:
 				this.jumps.push(this.cursor);
 				this.cursor = q4-1;
 				this.funcStack.push(this.prepareFunction);
-				// console.log("\n\n"+this.funcs[this.prepareFunction].name, ":",this.prepareMemory);
 				this.funcs[this.prepareFunction].memory.vars.push(this.prepareMemory.vars);
 				this.funcs[this.prepareFunction].memory.temps.push(this.prepareMemory.temps);
 				this.prepareMemory.vars = [];
@@ -336,18 +348,21 @@ class VM {
 
 			// SPECIAL FUNCTIONS
 			case OPERATIONS.PRINT:
-				console.log(q4, this.funcs[this.currentFunc()].memory, this.getMemory(q4));
 				this.output.push(this.getMemory(q4).val);
 				break;
 			case OPERATIONS.VERIFY:
 				var val = this.getMemory(q2).val;
+				if(val>q4 || val<q3){
+					this.error = { type: ERRORS.ACCESS_ARRAY_INDEX, line: line };
+				}
 				break;
 			case OPERATIONS.LENGTH:
-				this.setMemory(q4, this.vars[q2].size);
+				this.setMemory(q4, parseInt(this.getMemory(q2).size));
 				break;
-			case OPERATIONS.VALDIR:
-				// var dir = this.getMemory(q2).val;
-				this.setMemory(q4, this.getMemory(q2).val);
+			case OPERATIONS.RAND:
+				var start = this.getMemory(q2).val;
+				var end = this.getMemory(q3).val;
+				this.setMemory(q4, Math.floor(Math.random() * end) + start);
 				break;
 
 			
