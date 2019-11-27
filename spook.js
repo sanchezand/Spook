@@ -100,10 +100,10 @@ case 2:
 		// // console.log(QUADS);
 		var j = 0;
 		if(QUADS[1][3]==null) return { error: { line: 1, type: ERRORS.MISSING_START } }
-		for(var i of QUADS){
-			console.log(`[${i[4]}]: ${j}:\t ${i[0]}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
-			j++;
-		}
+		// for(var i of QUADS){
+		// 	console.log(`[${i[4]}]: ${j}:\t ${i[0]}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
+		// 	j++;
+		// }
 		return {
 			quads: QUADS,
 			// pretty: prettyQuads(),
@@ -1547,7 +1547,7 @@ case 45:return 6
 break;
 }
 },
-rules: [/^(?:\s+)/,/^(?:(true|false))/,/^(?:def\b)/,/^(?:\*)/,/^(?:\/)/,/^(?:-)/,/^(?:\+)/,/^(?:\()/,/^(?:\))/,/^(?:,)/,/^(?::)/,/^(?:\[)/,/^(?:\])/,/^(?:decimal\b)/,/^(?:bool\b)/,/^(?:else\b)/,/^(?:elseif\b)/,/^(?:==)/,/^(?:>=)/,/^(?:<=)/,/^(?:>)/,/^(?:<)/,/^(?:(not|NOT|!=))/,/^(?:(and|AND|&&))/,/^(?:(or|OR|\|\|))/,/^(?:if\b)/,/^(?:then\b)/,/^(?:end\b)/,/^(?:fun\b)/,/^(?:while\b)/,/^(?:do\b)/,/^(?:return\b)/,/^(?:print\b)/,/^(?:length\b)/,/^(?:rand\b)/,/^(?:forward\b)/,/^(?:rotateRight\b)/,/^(?:pickUp\b)/,/^(?:putDown\b)/,/^(?:detectBox\b)/,/^(?:detectWall\b)/,/^(?:inventory\b)/,/^(?:[0-9]+(\.[0-9]+)?\b)/,/^(?:[a-zA-Z][a-zA-Z_]*)/,/^(?:=)/,/^(?:$)/],
+rules: [/^(?:\s+)/,/^(?:(true|false))/,/^(?:def\b)/,/^(?:\*)/,/^(?:\/)/,/^(?:-)/,/^(?:\+)/,/^(?:\()/,/^(?:\))/,/^(?:,)/,/^(?::)/,/^(?:\[)/,/^(?:\])/,/^(?:decimal\b)/,/^(?:bool\b)/,/^(?:else\b)/,/^(?:elseif\b)/,/^(?:==)/,/^(?:>=)/,/^(?:<=)/,/^(?:>)/,/^(?:<)/,/^(?:(not|NOT|!=))/,/^(?:(and|AND|&&))/,/^(?:(or|OR|\|\|))/,/^(?:if\b)/,/^(?:then\b)/,/^(?:end\b)/,/^(?:fun\b)/,/^(?:while\b)/,/^(?:do\b)/,/^(?:return\b)/,/^(?:print\b)/,/^(?:length\b)/,/^(?:rand\b)/,/^(?:move\b)/,/^(?:rotate\b)/,/^(?:pickUp\b)/,/^(?:putDown\b)/,/^(?:detectBox\b)/,/^(?:detectWall\b)/,/^(?:inventory\b)/,/^(?:[0-9]+(\.[0-9]+)?\b)/,/^(?:[a-zA-Z][a-zA-Z_]*)/,/^(?:=)/,/^(?:$)/],
 conditions: {"INITIAL":{"rules":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45],"inclusive":true}}
 });
 return lexer;

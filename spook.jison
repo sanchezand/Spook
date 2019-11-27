@@ -441,8 +441,8 @@
 "print"							return 'OUT'
 "length"							return 'LEN'
 "rand"							return 'RAND'
-"forward"						return 'FORWARD'
-"rotateRight"					return 'ROTRIGHT'
+"move"							return 'FORWARD'
+"rotate"							return 'ROTRIGHT'
 "pickUp"							return 'PICKUP'
 "putDown"						return 'PUTDOWN'
 "detectBox"						return 'DETECT_BOX'
@@ -467,18 +467,12 @@ begin: {
 
 start:
 	begin declarations EOF {
-		// console.log(VARS);
-		// for(var i of FUNCS){
-		// 	console.log(i.name, i.vars);
-		// }
-		// // console.log(FUNCS);
-		// // console.log(QUADS);
 		var j = 0;
 		if(QUADS[1][3]==null) return { error: { line: 1, type: ERRORS.MISSING_START } }
-		for(var i of QUADS){
-			console.log(`[${i[4]}]: ${j}:\t ${i[0]}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
-			j++;
-		}
+		// for(var i of QUADS){
+		// 	console.log(`[${i[4]}]: ${j}:\t ${i[0]}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
+		// 	j++;
+		// }
 		return {
 			quads: QUADS,
 			// pretty: prettyQuads(),
@@ -543,21 +537,6 @@ assign:
 		addQuad(OPERATIONS.ASSIGN, $8.dir, -1, t+1000000, @1.first_line);
 	}
 	;
-
-
-
-// expression:
-// 	exp compOp exp{
-// 		var temp = addTemp();
-// 		$$ = addQuad($2, $1.dir, $3.dir, temp);
-// 		valStack.push(temp);
-// 		$$ = { dir: valStack[valStack.length-1] };
-// 	}
-// 	| exp {
-// 		$$ = { dir: valStack[valStack.length-1] };
-// 	}
-// 	;
-
 
 
 compList2:
