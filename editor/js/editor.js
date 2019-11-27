@@ -13,6 +13,7 @@ function Editor(canvas){
 	this.ending = [11,11];
 	this.dimensions = 13;
 	this.notification = false;
+	this.moves = [];
 	this.inventory = 0;
 
 	this.selection = {
@@ -46,6 +47,11 @@ Editor.prototype.reset = function(){
 		player: [0,0],
 		playerRotation: 0
 	}
+	this.moves = [];
+}
+
+Editor.prototype.getMoves = function(){
+	return this.moves;
 }
 
 Editor.prototype.setMode = function(mode){
@@ -65,11 +71,12 @@ Editor.prototype.generateLink = function(){
 	if(walls.length>0) q.push('w='+walls.join(';'));
 	if(boxes.length>0) q.push('b='+boxes.join(';'));
 	q.push('p='+this.stage.player.join(',')+','+this.stage.playerRotation);	
-	q.push('e='+this.ending.join(','));	
+	// q.push('e='+this.ending.join(','));	
 	return q.join('&');
 }
 
 Editor.prototype.moveForward = function(){
+	this.moves.push(0);
 	var newX = this.stage.player[0], newY = this.stage.player[1];
 	switch(this.stage.playerRotation){
 		case 0:
@@ -92,16 +99,29 @@ Editor.prototype.moveForward = function(){
 }
 
 Editor.prototype.rotate = function(){
+	this.moves.push(1);
 	this.stage.playerRotation = this.stage.playerRotation==3 ? 0 : this.stage.playerRotation+1;
 }
 
 Editor.prototype.pickup = function(){
+	this.moves.push(2);
 	var ix = this.stage.boxes.findIndex(a=>a[0]==this.stage.player[0] && a[1]==this.stage.player[1]);
 	if(ix==-1) return;
 	this.stage.boxes[ix][2] -= 1;
 	this.inventory += 1;
 	if(this.stage.boxes[ix][2]<=0){
 		this.stage.boxes.splice(ix, 1);
+	}
+}
+
+Editor.prototype.putdown = function(){
+	this.moves.push(3);
+	if(this.inventory<=0) return;
+	var ix = this.stage.boxes.findIndex(a=>a[0]==this.stage.player[0] && a[1]==this.stage.player[1]);
+	if(ix==-1){
+		this.stage.boxes.push([this.stage.player[0], this.stage.player[1], 1])
+	}else{
+		this.stage.boxes[ix][2] += 1;
 	}
 }
 
@@ -194,9 +214,7 @@ Editor.prototype.placeBox = function(x,y, remove, amount){
 
 Editor.prototype.placePlayer = function(x,y,rot){
 	if(rot){
-		console.log(rot);
 		this.stage.playerRotation = Math.min(Math.max(rot, 0), 4);
-		console.log(this.stage.playerRotation);
 	}
 	if(this.stage.player[0]==x && this.stage.player[1]==y && !rot){
 		this.stage.playerRotation = this.stage.playerRotation==3 ? 0 : this.stage.playerRotation+1;
@@ -282,10 +300,10 @@ Editor.prototype.drawStage = function(){
 		this.ctx.stroke();
 	}
 
-	var endX = Math.floor(35+(this.ending[0]*this.gridSize)-(this.gridSize/4));
-	var endY = Math.floor(35+(this.ending[1]*this.gridSize)-(this.gridSize/4));
-	this.ctx.fillStyle = "#3c63b0";
-	this.ctx.fillRect(endX, endY, 20, 20);
+	// var endX = Math.floor(35+(this.ending[0]*this.gridSize)-(this.gridSize/4));
+	// var endY = Math.floor(35+(this.ending[1]*this.gridSize)-(this.gridSize/4));
+	// this.ctx.fillStyle = "#3c63b0";
+	// this.ctx.fillRect(endX, endY, 20, 20);
 
 	for(var i of this.stage.boxes){
 		var pX = Math.floor(35+(i[0]*this.gridSize)-(this.gridSize/4));

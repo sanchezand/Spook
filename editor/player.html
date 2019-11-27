@@ -78,19 +78,20 @@
 		var editor = new Editor(document.getElementById("canvas"));
 		editor.start();
 		editor.setMode(5);
+
+		var movesTimeout = false;
 		
 		
 		function runCode(){
 			var code = ace_editor.getValue();
 			localStorage.setItem('code', code);
+			if(movesTimeout) clearTimeout(movesTimeout);
 			try{
 				resetMap();
 				var res = spook.parse(code);
 				if(res.error){
-					console.log(res.error);
 					highlightLine(res.error.line)
 					var err = ERROR_MESSAGES[res.error.type];
-					console.log(err);
 					showMessage(res.error.line, err, 'error');
 					return;
 				}
@@ -128,13 +129,43 @@
 				})
 
 				var out = vm.doQuads();
-				showMessage(false, 'Código compilado satisfactoriamente.', 'success');
+				var moves = editor.getMoves()
+				resetMap();
+				movesTimeout = setTimeout(function(){
+					doMoves(moves)
+				}, 500);
+				showMessage(false, 'Código compilado satisfactoriamente.', 'info');
 			}catch(e){
+				console.log(e)
 				highlightLine(e.hash.line+1);
 				showMessage(e.hash.line+1, 'Error de sintaxis. Estatuto no válido.', 'error')
 			}
 		}
 		
+		function doMoves(moves){
+			if(moves.length==0){
+				showMessage(false, 'Terminado.', 'success');
+				return;
+			}
+			switch(moves[0]){
+				case 0: 
+					editor.moveForward();
+					break;
+				case 1:
+					editor.rotate();
+					break;
+				case 2:
+					editor.pickup();
+					break;
+				case 3:
+					editor.putdown();
+					break;
+			}
+			movesTimeout = setTimeout(function(){
+				doMoves(moves.slice(1));
+			}, 1000);
+		}
+
 		$('#link-play').val(location.href);
 		$('#link-play').on('click', function(){
 			$(this).select();
@@ -155,7 +186,7 @@
 		}
 
 		function showMessage(line, text, type){
-			$('#message').removeClass('success').removeClass('error');
+			$('#message').removeClass('success').removeClass('error').removeClass('info');
 			$('#message').html((line ? ('Error en línea <b>'+line+'</b>:<br>') : '') + text);
 			$('#message').addClass(type);
 		}
