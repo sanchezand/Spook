@@ -1,6 +1,7 @@
 <html>
 	<head>
 		<script src="js/editor.js"></script>
+		<script src="js/errors.js"></script>
 		<script src="../spook.js"></script>
 		<script src="../SpookVM.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
@@ -60,6 +61,7 @@
 						<i class="edit icon"></i> Abrir en editor
 					</a>
 				</div>
+				<div class="ui message" id="message"></div>
 				<div class="ui link form">
 					<div class="field">
 						<label>Play Link</label>
@@ -69,9 +71,7 @@
 					</div>
 				</div>
 			</div>
-			<div class="editor" id="editor">fun start()
-
-end</div>
+			<div class="editor" id="editor"></div>
 		</div>
 	</body>
 	<script>
@@ -88,7 +88,10 @@ end</div>
 				var res = spook.parse(code);
 				if(res.error){
 					console.log(res.error);
-					marker = ace_editor.session.addMarker(new Range(res.error.line-1, 0, res.error.line-1, 1000000), 'editor-error', 'text')
+					highlightLine(res.error.line)
+					var err = ERROR_MESSAGES[res.error.type];
+					console.log(err);
+					showMessage(res.error.line, err, 'error');
 					return;
 				}
 
@@ -125,8 +128,10 @@ end</div>
 				})
 
 				var out = vm.doQuads();
+				showMessage(false, 'Código compilado satisfactoriamente.', 'success');
 			}catch(e){
-				console.log(e);
+				highlightLine(e.hash.line+1);
+				showMessage(e.hash.line+1, 'Error de sintaxis. Estatuto no válido.', 'error')
 			}
 		}
 		
@@ -143,6 +148,17 @@ end</div>
 		var ending = urlParams.get('e');
 
 		resetMap();
+
+		function highlightLine(line){
+			if(marker!=-1)ace_editor.session.removeMarker(marker);
+			marker = ace_editor.session.addMarker(new Range(line-1, 0, line-1, 1000000), 'editor-error', 'text')
+		}
+
+		function showMessage(line, text, type){
+			$('#message').removeClass('success').removeClass('error');
+			$('#message').html((line ? ('Error en línea <b>'+line+'</b>:<br>') : '') + text);
+			$('#message').addClass(type);
+		}
 
 		function resetMap(){
 			editor.reset();
