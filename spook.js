@@ -92,18 +92,12 @@ case 1:
 break;
 case 2:
 
-		// console.log(VARS);
-		// for(var i of FUNCS){
-		// 	console.log(i.name, i.vars);
-		// }
-		// // console.log(FUNCS);
-		// // console.log(QUADS);
 		var j = 0;
 		if(QUADS[1][3]==null) return { error: { line: 1, type: ERRORS.MISSING_START } }
-		// for(var i of QUADS){
-		// 	console.log(`[${i[4]}]: ${j}:\t ${i[0]}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
-		// 	j++;
-		// }
+		for(var i of QUADS){
+			console.log(`[${i[4]}]: ${j}:\t ${i[0]}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
+			j++;
+		}
 		return {
 			quads: QUADS,
 			// pretty: prettyQuads(),

@@ -208,14 +208,14 @@ class VM {
 				dir,
 				constant: true
 			}
-		}else if(dir>999990 && dir<1000000){ // SPECIALS
+		}else if(dir>=999990 && dir<1000000){ // SPECIALS
 			switch(dir){
 				case 999990: // INVENTORY
-					return { val: 0, dir, name: 'CHECK_INV', type: 'decimal' };
+					return { val: this.inventory(), dir, name: 'CHECK_INV', type: 'decimal' };
 				case 999991: // CHECK WALL
-					return { val: true, dir, name: 'CHECK_WALL', type: 'boolean' };
+					return { val: this.wall(), dir, name: 'CHECK_WALL', type: 'boolean' };
 				case 999992: // CHECK BOX
-					return { val: false, dir, name: 'CHECK_BOX', type: 'boolean' };
+					return { val: this.box(), dir, name: 'CHECK_BOX', type: 'boolean' };
 			}
 		}else if(dir>=1000000){
 			return this.getMemory(this.getMemory(dir-1000000).val);
@@ -384,19 +384,78 @@ class VM {
 
 			// ROBOT FUNCTIONS
 			case OPERATIONS.MOVE:
-				this.moves.push(0);
+				this.move();
 				break;
 			case OPERATIONS.ROTATE:
-				this.moves.push(1);
+				this.rotate();
 				break;
 			case OPERATIONS.PICKUP:
-				this.moves.push(2);
+				this.pickup();
 				break;
 			case OPERATIONS.PUTDOWN:
-				this.moves.push(3);
+				this.putdown();
 				break;
 		}
 	}
+
+	move(){
+		if(this.movefn) this.movefn();
+	}
+
+	rotate(){
+		if(this.rotatefn) this.rotatefn();
+	}
+
+	pickup(){
+		if(this.pickupfn) this.pickupfn();
+	}
+
+	putdown(){
+		if(this.putdownfn) this.putdownfn();
+	}
+
+	inventory(){
+		if(this.inventoryfn) return this.inventoryfn();
+		return 0;
+	}
+
+	wall(){
+		if(this.wallfn) return this.wallfn();
+		return false;
+	}
+
+	box(){
+		if(this.boxfn) return this.boxfn();
+		return false;
+	}
+
+	onMove(fn){
+		this.movefn = fn;
+	}
+
+	onRotate(fn){
+		this.rotatefn = fn;
+	}
+
+	onPickup(fn){
+		this.pickupfn = fn;
+	}
+
+	onPutdown(fn){
+		this.putdownfn = fn;
+	}
+
+	getInventory(fn){
+		this.inventoryfn = fn;
+	}
+
+	checkWall(fn){
+		this.wallfn = fn;
+	}
+
+	checkBox(fn){
+		this.boxfn = fn;
+	}
 }
 
-module.exports = VM
+// module.exports = VM

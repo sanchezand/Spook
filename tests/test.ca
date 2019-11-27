@@ -1,34 +1,6 @@
-fun sort(n: decimal[20], f: decimal)
-	def i,j,temp : decimal
-	i = 0
-	while i<20 do
-		j = 0
-		while j<19 do
-			if n[j] > n[j+1] then
-				temp = n[j]
-				n[j] = n[j+1]
-				n[j+1] = temp
-			end
-			j = j+1
-		end
-		i = i+1
-	end
-	i = 0
-	while i<20 do
-		print(n[i])
-		i = i+1
-	end
-end
-
 fun start()
-	def n : decimal[20]
-	def i : decimal
-	i = 0
-	
-	while i<20 do
-		n[i] = rand(1, 100)
-		i = i+1
+	while detectWall() do
+	    move()
 	end
-
-	sort(n, 20)
+	rotate()
 end

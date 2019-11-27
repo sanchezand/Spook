@@ -1,5 +1,5 @@
 var playerImg = new Image;
-playerImg.src = "https://i.imgur.com/9kbenvc.png";
+playerImg.src = "assets/arrow.png";
 function Editor(canvas){
 	canvas.selectable = false;
 	var self = this;
@@ -13,6 +13,7 @@ function Editor(canvas){
 	this.ending = [11,11];
 	this.dimensions = 13;
 	this.notification = false;
+	this.inventory = 0;
 
 	this.selection = {
 		x: 0,
@@ -36,7 +37,15 @@ function Editor(canvas){
 		e.preventDefault();
 		self.mouseDown(e.button>0);
 	})
-	
+}
+
+Editor.prototype.reset = function(){
+	this.stage = {
+		walls: [],
+		boxes: [],
+		player: [0,0],
+		playerRotation: 0
+	}
 }
 
 Editor.prototype.setMode = function(mode){
@@ -61,19 +70,38 @@ Editor.prototype.generateLink = function(){
 }
 
 Editor.prototype.moveForward = function(){
+	var newX = this.stage.player[0], newY = this.stage.player[1];
 	switch(this.stage.playerRotation){
 		case 0:
-			this.stage.player[1] = Math.max(this.stage.player[1]-1, 0);
+			newY = Math.max(this.stage.player[1]-1, 0);
 			break;
 		case 1:
-			this.stage.player[0] = Math.min(this.stage.player[0]+1, 11);
+			newX = Math.min(this.stage.player[0]+1, 11);
 			break;
 		case 2:
-			this.stage.player[1] = Math.min(this.stage.player[1]+1, 11);
+			newY = Math.min(this.stage.player[1]+1, 11);
 			break;
 		case 3:
-			this.stage.player[0] = Math.max(this.stage.player[0]-1, 0);
+			newX = Math.max(this.stage.player[0]-1, 0);;
 			break;
+	}
+	if(!this.checkWall()){
+		this.stage.player[0] = newX;
+		this.stage.player[1] = newY;
+	}
+}
+
+Editor.prototype.rotate = function(){
+	this.stage.playerRotation = this.stage.playerRotation==3 ? 0 : this.stage.playerRotation+1;
+}
+
+Editor.prototype.pickup = function(){
+	var ix = this.stage.boxes.findIndex(a=>a[0]==this.stage.player[0] && a[1]==this.stage.player[1]);
+	if(ix==-1) return;
+	this.stage.boxes[ix][2] -= 1;
+	this.inventory += 1;
+	if(this.stage.boxes[ix][2]<=0){
+		this.stage.boxes.splice(ix, 1);
 	}
 }
 
@@ -101,7 +129,7 @@ Editor.prototype.mouseDown = function(remove){
 	}else if(this.mode==2){ // PLACE BOX
 		this.placeBox(this.selection.x, this.selection.y, remove);
 	}else if(this.mode==3){ // PLACE GODART
-		this.placePlayer(this.selection.x, this.selection.y, remove);
+		this.placePlayer(this.selection.x, this.selection.y);
 	}else if(this.mode==4){ // PLACE ENDING
 		this.placeEnd(this.selection.x, this.selection.y);
 	}
@@ -164,11 +192,13 @@ Editor.prototype.placeBox = function(x,y, remove, amount){
 	this.notifyChange();
 }
 
-Editor.prototype.placePlayer = function(x,y, rot){
+Editor.prototype.placePlayer = function(x,y,rot){
 	if(rot){
+		console.log(rot);
 		this.stage.playerRotation = Math.min(Math.max(rot, 0), 4);
+		console.log(this.stage.playerRotation);
 	}
-	if(this.stage.player[0]==x && this.stage.player[1]==y){
+	if(this.stage.player[0]==x && this.stage.player[1]==y && !rot){
 		this.stage.playerRotation = this.stage.playerRotation==3 ? 0 : this.stage.playerRotation+1;
 	}else{
 		this.stage.player = [parseInt(x),parseInt(y)];
@@ -188,6 +218,59 @@ Editor.prototype.getCoords = function(x, y){
 	}
 }
 
+Editor.prototype.canMove = function(){
+	
+}
+
+Editor.prototype.getInventory = function(){
+	return this.inventory;
+}
+
+Editor.prototype.checkBox = function(){
+	for(var i of this.stage.boxes){
+		if(i[0]==this.stage.player[0] && i[1]==this.stage.player[1]){
+			return true;
+		}
+	}
+	return false;
+}
+
+Editor.prototype.wallBetween = function(x1, y1, x2, y2){
+	var type = x1==x2 ? 0 : 1;
+
+	for(var i of this.stage.walls){
+		var xLeft = Math.min(i[0], i[2]);
+		var xRight = Math.max(i[0], i[2]);
+		var yTop = Math.min(i[1], i[3]);
+		var yBottom = Math.max(i[1], i[3]);
+		if(type==0 && i[0]==i[2] && x1==i[0]){
+			if(yTop<=y1 && yBottom>=y1 && yTop<=y2 && yBottom>=y2){
+				return true;
+			}
+		}else if(type==1 && i[1]==i[3] && y1==i[1]){
+			if(xLeft<=x1 && xRight>=x1 && xLeft<=x2 && xRight>=x2){
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+Editor.prototype.checkWall = function(){
+	var x = this.stage.player[0], y = this.stage.player[1];
+	switch(this.stage.playerRotation){
+		case 0: 
+			return this.wallBetween(x, y, x+1, y) || y==0;
+		case 1:
+			return this.wallBetween(x+1, y, x+1, y+1) || x==11;
+		case 2:
+			return this.wallBetween(x, y+1, x+1, y+1) || y==11;
+		case 3:
+			return this.wallBetween(x, y, x, y+1) || x==0;
+	}
+	return false;
+}
+
 Editor.prototype.drawStage = function(){
 	for(var i of this.stage.walls){
 		var start = this.getCoords(i[0], i[1]);
@@ -199,8 +282,11 @@ Editor.prototype.drawStage = function(){
 		this.ctx.stroke();
 	}
 
-	this.ctx.font = "18px Arial";
-	this.ctx.textAlign = "center";
+	var endX = Math.floor(35+(this.ending[0]*this.gridSize)-(this.gridSize/4));
+	var endY = Math.floor(35+(this.ending[1]*this.gridSize)-(this.gridSize/4));
+	this.ctx.fillStyle = "#3c63b0";
+	this.ctx.fillRect(endX, endY, 20, 20);
+
 	for(var i of this.stage.boxes){
 		var pX = Math.floor(35+(i[0]*this.gridSize)-(this.gridSize/4));
 		var pY = Math.floor(35+(i[1]*this.gridSize)-(this.gridSize/4));
@@ -210,21 +296,19 @@ Editor.prototype.drawStage = function(){
 		this.ctx.fillText(i[2], pX+10, pY+16); 
 	}
 
-	var endX = Math.floor(35+(this.ending[0]*this.gridSize)-(this.gridSize/4));
-	var endY = Math.floor(35+(this.ending[1]*this.gridSize)-(this.gridSize/4));
-	
-	this.ctx.fillStyle = "#3c63b0";
-	this.ctx.fillRect(endX, endY, 20, 20);
-
-
-
 	var playerX = Math.floor(35+(this.stage.player[0]*this.gridSize)-(this.gridSize/4));
 	var playerY = Math.floor(35+(this.stage.player[1]*this.gridSize)-(this.gridSize/4));
-	// this.ctx.save();
-	// this.ctx.translate(this.canvas.width/2,this.canvas.height/2);
-	// this.ctx.rotate(90*Math.PI/180);
 	this.ctx.drawImage(playerImg, this.stage.playerRotation*100, 0, 100, 100, playerX, playerY, 20, 20);
-	// this.ctx.restore();
+
+	this.ctx.font = "18px Arial";
+	this.ctx.textAlign = "center";
+	for(var i of this.stage.boxes){		
+		var pX = Math.floor(35+(i[0]*this.gridSize)-(this.gridSize/4));
+		var pY = Math.floor(35+(i[1]*this.gridSize)-(this.gridSize/4));
+		this.ctx.fillStyle = "#000000";
+		this.ctx.fillText(i[2], pX+10, pY+16); 
+	}
+
 
 }
 
@@ -262,8 +346,8 @@ Editor.prototype.drawConstructWalls = function(){
 
 Editor.prototype.drawPlace = function(){
 	this.ctx.fillStyle = "#00000032";
-	var x = Math.min(Math.max(Math.floor((this.mouseX-10)/(this.dimensions*2.5)), 0), this.dimensions-2);
-	var y = Math.min(Math.max(Math.floor((this.mouseY-10)/(this.dimensions*2.5)), 0), this.dimensions-2);
+	var x = Math.min(Math.max(Math.floor((this.mouseX-10)/(this.dimensions*2.42)), 0), this.dimensions-2);
+	var y = Math.min(Math.max(Math.floor((this.mouseY-10)/(this.dimensions*2.42)), 0), this.dimensions-2);
 
 	this.selection = { x: x, y: y }
 

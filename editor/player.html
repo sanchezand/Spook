@@ -1,6 +1,8 @@
 <html>
 	<head>
 		<script src="js/editor.js"></script>
+		<script src="../spook.js"></script>
+		<script src="../SpookVM.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/fomantic-ui/2.7.1/semantic.min.js"></script>
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fomantic-ui/2.7.6/semantic.min.css" />
@@ -19,6 +21,7 @@
 		}
 		.player{
 			max-width: 500px;
+			height: 100%;
 			text-align: center;
 		}
 		.player .buttons{
@@ -30,12 +33,18 @@
 		.container{
 			display: flex;
 			justify-content: center;
-			margin-top: 20px;
+			padding-top: 20px;
+			height: calc(100% - 40px);
 		}
 		.container .editor{
 			margin-left: 20px;
 			max-width: 700px;
 			width: 100%;
+		}
+		.editor-error{
+  			position:absolute;
+			z-index: 20;
+			background-color: #8b26269c;
 		}
 	</style>
 	<body>
@@ -43,7 +52,7 @@
 			<div class="player">
 				<canvas class="sp canvas" width="405" height="405" id="canvas" oncontextmenu="return false;"></canvas>
 				<div class="buttons">
-					<div class="ui green button icon" style="width: 200px;">
+					<div class="ui green button icon" style="width: 200px;" onclick="runCode()">
 						<i class="play icon"></i> Ejecutar
 					</div>
 					<br>
@@ -73,6 +82,57 @@ end</div>
 		editor.start();
 		editor.setMode(5);
 		
+		
+		function runCode(){
+			var code = ace_editor.getValue();
+			localStorage.setItem('code', code);
+			try{
+				resetMap();
+				var res = spook.parse(code);
+				if(res.error){
+					console.log(res.error);
+					marker = ace_editor.session.addMarker(new Range(res.error.line-1, 0, res.error.line-1, 1000000), 'editor-error', 'text')
+					return;
+				}
+
+				ace_editor.session.removeMarker(marker);
+				var vm = new VM(res.quads, res.vars, res.funcs, res.const);
+				// console.log(vm.output);
+
+				vm.checkWall(function(){
+					return editor.checkWall();
+				})
+
+				vm.checkBox(function(){
+					return editor.checkBox();
+				})
+
+				vm.inventory(function(){
+					return editor.getInventory();
+				})
+
+				vm.onMove(function(){
+					editor.moveForward();
+				})
+
+				vm.onRotate(function(){
+					editor.rotate();
+				})
+				
+				vm.onPickup(function(){
+					editor.pickup();
+				})
+
+				vm.onPutdown(function(){
+					editor.putdown();
+				})
+
+				var out = vm.doQuads();
+			}catch(e){
+				console.log(e);
+			}
+		}
+		
 		$('#link-play').val(location.href);
 		
 		var urlParams = new URLSearchParams(window.location.search);
@@ -80,37 +140,49 @@ end</div>
 		var boxes = urlParams.get('b');
 		var player = urlParams.get('p');
 		var ending = urlParams.get('e');
-		
-		if(boxes){
-			var b = boxes.split(';');
-			for(var i of b){
-				var s = i.split(',');
-				editor.placeBox(s[0], s[1], false, s[2]);
-			}
-		}
-		if(walls){
-			var w = walls.split(';');
-			for(var i of w){
-				var s = i.split(',');
-				if(s[0]=='x'){
-					editor.placeWall(s[1], s[2], s[1], s[3]);
-				}else{
-					editor.placeWall(s[2], s[1], s[3], s[1]);
+
+		resetMap();
+
+		function resetMap(){
+			editor.reset();
+			if(boxes){
+				var b = boxes.split(';');
+				for(var i of b){
+					var s = i.split(',');
+					editor.placeBox(s[0], s[1], false, s[2]);
 				}
 			}
-		}
-		if(player){
-			var s = player.split(',');
-			editor.placePlayer(s[0], s[1], s[2]);
-		}
-		if(ending){
-			var s = ending.split(',');
-			editor.placeEnd(s[0], s[1]);
+			if(walls){
+				var w = walls.split(';');
+				for(var i of w){
+					var s = i.split(',');
+					if(s[0]=='x'){
+						editor.placeWall(s[1], s[2], s[1], s[3]);
+					}else{
+						editor.placeWall(s[2], s[1], s[3], s[1]);
+					}
+				}
+			}
+			if(player){
+				var s = player.split(',');
+				editor.placePlayer(s[0], s[1], s[2]);
+			}
+			if(ending){
+				var s = ending.split(',');
+				editor.placeEnd(s[0], s[1]);
+			}
 		}
 
 		var ace_editor = ace.edit("editor");
 		ace_editor.setTheme("ace/theme/monokai");
+		var Range = ace.require("ace/range").Range;
+		var marker = -1;
 
-		
+		var code = localStorage.getItem('code');
+		if(!code){
+			code = 'fun start()\n\t\nend'
+		}
+		ace_editor.setValue(code);
+		ace_editor.clearSelection();
 	</script>
 </html>
