@@ -122,11 +122,13 @@
 			return { error: ERRORS.METHOD_REDECLARATION_VARIABLE };
 		}
 		var vars = [];
+		var size = 0;
 		for(var i of params){
 			// var j = defineVariable(`${name}#${i.name}`, i.type)
 			// console.log(vars.findIndex(a=>a.name==i.name))
 			if(vars.findIndex(a=>a.name==i.name)!=-1) return { error: ERRORS.DECLARE_REDECLARATION };
-			vars.push({ ...i, dir: vars.length+10000 });
+			vars.push({ ...i, dir: size+10000 });
+			size += (i.size||1);
 		}
 		FUNCS.push({
 			name,
@@ -469,10 +471,10 @@ start:
 	begin declarations EOF {
 		var j = 0;
 		if(QUADS[1][3]==null) return { error: { line: 1, type: ERRORS.MISSING_START } }
-		for(var i of QUADS){
-			console.log(`[${i[4]}]: ${j}:\t ${i[0]}\t${i[1]}\t${i[2]}\t${i[3]}\t`)
-			j++;
-		}
+		// for(var i of QUADS){
+		// 	console.log(`[${i[4]}]: ${j},${i[0]},${i[1]},${i[2]},${i[3]}`)
+		// 	j++;
+		// }
 		return {
 			quads: QUADS,
 			// pretty: prettyQuads(),

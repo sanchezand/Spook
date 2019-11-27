@@ -23,8 +23,3 @@ console.log("==========  OUTPUT  ==========");
 for(var i=0; i<output.length; i++){
 	console.log(`[${i+1}]:`, output[i]);
 }
-
-console.log("\n\n==========  MOVES  ==========");
-for(var i=0; i<moves.length; i++){
-	console.log(`[${i+1}]:`, moves[i]);
-}

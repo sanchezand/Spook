@@ -82,7 +82,6 @@ class VM {
 		this.prepareFunction = -1;
 		this.prepareMemory = { vars: [], temps: [] }
 		this.error = false;
-		this.moves = [];
 		this.output = [];
 		this.jumps = [];
 
@@ -112,8 +111,7 @@ class VM {
 		}
 		return {
 			error: this.error,
-			output: this.output,
-			moves: this.moves
+			output: this.output
 		};
 	}
 
@@ -127,10 +125,6 @@ class VM {
 
 	getFunctionMemory(){
 		return this
-	}
-
-	getMoves(){
-		return this.moves;
 	}
 
 	getFunctionVar(dir){
@@ -347,6 +341,7 @@ class VM {
 				this.funcStack.push(this.prepareFunction);
 				this.funcs[this.prepareFunction].memory.vars.push(this.prepareMemory.vars);
 				this.funcs[this.prepareFunction].memory.temps.push(this.prepareMemory.temps);
+				console.log(this.funcs[this.prepareFunction].vars, this.funcs[this.prepareFunction].memory);
 				this.prepareMemory.vars = [];
 				this.prepareMemory.temps = [];
 				this.prepareFunction = -1;

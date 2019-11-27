@@ -1,6 +1,27 @@
+fun find(arr: decimal[5], val: decimal)
+    def i : decimal
+    i = 0
+    print(20000)
+    print(val)
+    print(20000)
+    while i<length(arr) do
+        print(i)
+        print(arr[i])
+        if arr[i] == val then
+            return i
+        end
+        i = i + 1
+    end
+    return -1
+end
+
 fun start()
-	while detectWall() do
-	    move()
-	end
-	rotate()
+    def a : decimal[5]
+    a[0] = 2
+    a[1] = 19
+    a[2] = 39
+    a[3] = 48
+    a[4] = 481
+    
+    print(find(a, 10))
 end
