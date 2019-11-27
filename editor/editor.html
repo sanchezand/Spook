@@ -34,25 +34,27 @@
 		<div class="player">
 			<canvas class="sp canvas" width="405" height="405" id="canvas" oncontextmenu="return false;"></canvas>
 			<div class="buttons">
-				<div class="ui icon button" onclick="setPlayer()">
+				<div class="ui icon button" onclick="setPlayer()" id="player">
 					<i class="user icon"></i> Set Player
 				</div>
-				<div class="ui icon button" onclick="setEnding()">
+				<!-- <div class="ui icon button" onclick="setEnding()" id="ending">
 					<i class="flag checkered icon"></i> Set Ending
-				</div>
-				<div class="ui icon button" onclick="placeWalls()">
+				</div> -->
+				<div class="ui icon button" onclick="placeWalls()" id="walls">
 					<i class="ruler horizontal icon"></i> Place Wall
 				</div>
-				<div class="ui icon button" onclick="placeBoxes()">	
+				<div class="ui icon button" onclick="placeBoxes()" id="boxes">	
 					<i class="box icon"></i> Place Boxes
 				</div>
+			</div>
+			<div class="ui info message" id="message">
+
 			</div>
 			<div class="ui link form">
 				<div class="field">
 					<label>Editor Link</label>
 					<input type="text" id="link-edit" readonly>
 				</div>
-
 				<div class="field">
 					<label>Play Link</label>
 					<div class="ui input action right">
@@ -125,18 +127,39 @@
 
 		function setPlayer(){
 			editor.setMode(3);
+			$('#message').text(info.player)
+			$('.ui.button').removeClass('black');
+			$('#player').addClass('black');
 		}
 
 		function placeWalls(){
 			editor.setMode(0);
+			$('#message').text(info.walls)
+			$('.ui.button').removeClass('black');
+			$('#walls').addClass('black');
 		}
 
 		function placeBoxes(){
 			editor.setMode(2);
+			$('#message').text(info.boxes)
+			$('.ui.button').removeClass('black');
+			$('#boxes').addClass('black');
 		}
 
 		function setEnding(){
 			editor.setMode(4);
+			$('#message').text(info.ending)
+			$('.ui.button').removeClass('black');
+			$('#ending').addClass('black');
 		}
+
+		var info = {
+			player: 'Da click para poner el lugar inicial del jugador. Da click de nuevo para cambiar su dirección.',
+			walls: 'Da click para iniciar a poner una pared. Da click de nuevo en otro cuadro para terminar de poner la pared. Usa el click derecho para eliminar una pared.',
+			boxes: 'Da click para poner una caja. Da click de nuevo para aumentar el número de cajas. Usa el click derecho para eliminar una caja.',
+			ending: 'Da click para poner la posición final.'
+		}
+
+		setPlayer();
 	</script>
 </html>
