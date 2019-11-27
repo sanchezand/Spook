@@ -1,0 +1,149 @@
+<html>
+	<head>
+		<script src="js/editor.js"></script>
+		<script src="js/errors.js"></script>
+		<script src="../spook.js"></script>
+		<script src="../SpookVM.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/fomantic-ui/2.7.1/semantic.min.js"></script>
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fomantic-ui/2.7.6/semantic.min.css" />
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.6/ace.js" integrity="sha256-CVkji/u32aj2TeC+D13f7scFSIfphw2pmu4LaKWMSY8=" crossorigin="anonymous"></script>
+		<title>Playground - Spook</title>
+	</head>
+	<style>
+		body{
+			width: 100%;
+		}
+		.sp.canvas{
+			width: 405px;
+			height: 405px;
+			border: 1px solid black;
+			margin: auto;
+		}
+		.container > .console{
+			max-width: 500px;
+			text-align: center;
+			width: 100%;
+			margin-left: 10px;
+			height: 100%;
+			text-align: left;
+		}
+		.container{
+			display: flex;
+			justify-content: center;
+			padding-top: 20px;
+			height: calc(100% - 40px);
+		}
+		.container .editor{
+			margin-left: 20px;
+			max-width: 600px;
+			width: 100%;
+		}
+		.editor-error{
+  			position:absolute;
+			z-index: 20;
+			background-color: #8b26269c;
+		}
+	</style>
+	<body>
+		<div class="container">
+			<div class="editor" id="editor"></div>
+			<div class="console">
+				<div class="ui green button icon" style="width: 200px;" onclick="runCode()">
+					<i class="play icon"></i> Ejecutar
+				</div>
+				<div class="ui message" id="message">Da click en ejecutar para continuar.</div>
+				<div class="ui header" style="margin-top: 0;">Consola</div>
+				<div class="ui console segment" id="console">
+				</div>
+			</div>
+		</div>
+	</body>
+	<script>
+		function runCode(){
+			var code = ace_editor.getValue();
+			localStorage.setItem('code_playground', code);
+			try{
+				var res = spook.parse(code);
+				if(res.error){
+					highlightLine(res.error.line)
+					var err = ERROR_MESSAGES[res.error.type];
+					showMessage(res.error.line, err, 'error');
+					return;
+				}
+
+				ace_editor.session.removeMarker(marker);
+				var vm = new VM(res.quads, res.vars, res.funcs, res.const);
+				var out = vm.doQuads();
+				var consoleOut = [];
+				var j = 0;
+				for(var i of out.output){
+					j++;
+					consoleOut.push('['+j+']: '+i);
+				}
+				$('#console').html(consoleOut.join('<br>'));
+				showMessage(false, 'Código compilado satisfactoriamente.', 'info');
+			}catch(e){
+				console.log(e)
+				highlightLine(e.hash.line+1);
+				showMessage(e.hash.line+1, 'Error de sintaxis. Estatuto no válido.', 'error')
+			}
+		}
+
+		function highlightLine(line){
+			if(marker!=-1)ace_editor.session.removeMarker(marker);
+			marker = ace_editor.session.addMarker(new Range(line-1, 0, line-1, 1000000), 'editor-error', 'text')
+		}
+
+		function showMessage(line, text, type){
+			$('#message').removeClass('success').removeClass('error').removeClass('info');
+			$('#message').html((line ? ('Error en línea <b>'+line+'</b>:<br>') : '') + text);
+			$('#message').addClass(type);
+		}
+
+		var ace_editor = ace.edit("editor");
+		ace_editor.setTheme("ace/theme/monokai");
+		var Range = ace.require("ace/range").Range;
+		var marker = -1;
+
+		var code = localStorage.getItem('code_playground');
+		if(!code){
+			code = `fun sort(n: decimal[20], f: decimal)
+	def i,j,temp : decimal
+	i = 0
+	while i<20 do
+		j = 0
+		while j<19 do
+			if n[j] > n[j+1] then
+				temp = n[j]
+				n[j] = n[j+1]
+				n[j+1] = temp
+			end
+			j = j+1
+		end
+		i = i+1
+	end
+	i = 0
+	while i<20 do
+		print(n[i])
+		i = i+1
+	end
+end
+
+fun start()
+	def n : decimal[20]
+	def i : decimal
+	i = 0
+	
+	while i<20 do
+		n[i] = rand(1, 100)
+		i = i+1
+	end
+
+	sort(n, 20)
+end`
+		}
+		ace_editor.setValue(code);
+		ace_editor.clearSelection();
+	</script>
+</html>
