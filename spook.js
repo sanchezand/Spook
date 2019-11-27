@@ -270,6 +270,7 @@ case 29:
 			return { error: { line: _$[$0-5].first_line, type: ERRORS.ACCESS_NO_VAR } }
 		}
 		if(!val.array){
+			console.log(val);
 			return { error: { line: _$[$0-5].first_line, type: ERRORS.ACCESS_NOT_ARRAY } }
 		}
 		var t = addTemp();
@@ -404,6 +405,7 @@ case 56:
 			return { error: { line: _$[$0-3].first_line, type: ERRORS.ACCESS_NO_VAR } }
 		}
 		if(!val.array){
+			console.log(val);
 			return { error: { line: _$[$0-3].first_line, type: ERRORS.ACCESS_NOT_ARRAY } }
 		}
 		var t = addTemp();
@@ -850,7 +852,7 @@ parse: function parse(input) {
 			// var j = defineVariable(`${name}#${i.name}`, i.type)
 			// console.log(vars.findIndex(a=>a.name==i.name))
 			if(vars.findIndex(a=>a.name==i.name)!=-1) return { error: ERRORS.DECLARE_REDECLARATION };
-			vars.push({ ...i, dir: size+10000 });
+			vars.push({ ...i, dir: size+10000, array: ((i.size||1)>1) });
 			size += (i.size||1);
 		}
 		FUNCS.push({

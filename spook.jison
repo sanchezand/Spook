@@ -127,7 +127,7 @@
 			// var j = defineVariable(`${name}#${i.name}`, i.type)
 			// console.log(vars.findIndex(a=>a.name==i.name))
 			if(vars.findIndex(a=>a.name==i.name)!=-1) return { error: ERRORS.DECLARE_REDECLARATION };
-			vars.push({ ...i, dir: size+10000 });
+			vars.push({ ...i, dir: size+10000, array: ((i.size||1)>1) });
 			size += (i.size||1);
 		}
 		FUNCS.push({
