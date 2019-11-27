@@ -4,8 +4,8 @@
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/fomantic-ui/2.7.1/semantic.min.js"></script>
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fomantic-ui/2.7.6/semantic.min.css" />
-
-		<title>Editor - Spook</title>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.6/ace.js" integrity="sha256-CVkji/u32aj2TeC+D13f7scFSIfphw2pmu4LaKWMSY8=" crossorigin="anonymous"></script>
+		<title>Player - Spook</title>
 	</head>
 	<style>
 		body{
@@ -18,10 +18,8 @@
 			margin: auto;
 		}
 		.player{
-			margin: auto;
 			max-width: 500px;
 			text-align: center;
-			margin-top: 20px;
 		}
 		.player .buttons{
 			margin-top: 10px;
@@ -29,53 +27,53 @@
 		.player .link{
 			margin-top: 10px;
 		}
+		.container{
+			display: flex;
+			justify-content: center;
+			margin-top: 20px;
+		}
+		.container .editor{
+			margin-left: 20px;
+			max-width: 700px;
+			width: 100%;
+		}
 	</style>
 	<body>
-		<div class="player">
-			<canvas class="sp canvas" width="405" height="405" id="canvas" oncontextmenu="return false;"></canvas>
-			<div class="buttons">
-				<div class="ui icon button" onclick="setPlayer()">
-					<i class="user icon"></i> Set Player
+		<div class="container">
+			<div class="player">
+				<canvas class="sp canvas" width="405" height="405" id="canvas" oncontextmenu="return false;"></canvas>
+				<div class="buttons">
+					<div class="ui green button icon" style="width: 200px;">
+						<i class="play icon"></i> Ejecutar
+					</div>
+					<br>
+					<div class="ui icon button" onclick="setPlayer()" style="margin-top: 10px; width: 200px;">
+						<i class="edit icon"></i> Abrir en editor
+					</div>
 				</div>
-				<div class="ui icon button" onclick="setEnding()">
-					<i class="flag checkered icon"></i> Set Ending
-				</div>
-				<div class="ui icon button" onclick="placeWalls()">
-					<i class="ruler horizontal icon"></i> Place Wall
-				</div>
-				<div class="ui icon button" onclick="placeBoxes()">	
-					<i class="box icon"></i> Place Boxes
-				</div>
-			</div>
-			<div class="ui link form">
-				<div class="field">
-					<label>Editor Link</label>
-					<input type="text" id="link-edit">
-				</div>
-
-				<div class="field">
-					<label>Play Link</label>
-					<div class="ui input action right">
-						<input type="text" id="link-play">
-						<div class="ui button">
-							Abrir
+				<div class="ui link form">
+					<div class="field">
+						<label>Play Link</label>
+						<div class="ui input action right">
+							<input type="text" id="link-play">
+							<div class="ui button">
+								Abrir
+							</div>
 						</div>
 					</div>
 				</div>
 			</div>
+			<div class="editor" id="editor">fun start()
+
+end</div>
 		</div>
-		<br><br>
 	</body>
 	<script>
 		var editor = new Editor(document.getElementById("canvas"));
 		editor.start();
-		var link = location.protocol + '//' + location.host + location.pathname
-		var link_play = location.protocol + '//' + location.host + location.pathname
-
-		editor.onChange(function(q){
-			link = location.protocol + '//' + location.host + location.pathname + '?' + q;
-			$('#link-edit').val(link);
-		});
+		editor.setMode(5);
+		
+		$('#link-play').val(location.href);
 		
 		var urlParams = new URLSearchParams(window.location.search);
 		var walls = urlParams.get('w');
@@ -110,20 +108,9 @@
 			editor.placeEnd(s[0], s[1]);
 		}
 
-		function setPlayer(){
-			editor.setMode(3);
-		}
+		var ace_editor = ace.edit("editor");
+		ace_editor.setTheme("ace/theme/monokai");
 
-		function placeWalls(){
-			editor.setMode(0);
-		}
-
-		function placeBoxes(){
-			editor.setMode(2);
-		}
-
-		function setEnding(){
-			editor.setMode(4);
-		}
+		
 	</script>
 </html>

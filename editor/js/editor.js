@@ -1,5 +1,5 @@
 var playerImg = new Image;
-playerImg.src = "https://upload.wikimedia.org/wikipedia/en/1/1f/Green_Arrow_Up%28new%29.png";
+playerImg.src = "https://i.imgur.com/9kbenvc.png";
 function Editor(canvas){
 	canvas.selectable = false;
 	var self = this;
@@ -8,9 +8,11 @@ function Editor(canvas){
 	this.gridX = 0;
 	this.gridY = 0;
 	this.gridSize = 30;
-	this.mode = 2;
+	this.mode = 0;
 	this.selected_pos = [0,0];
+	this.ending = [11,11];
 	this.dimensions = 13;
+	this.notification = false;
 
 	this.selection = {
 		x: 0,
@@ -35,6 +37,44 @@ function Editor(canvas){
 		self.mouseDown(e.button>0);
 	})
 	
+}
+
+Editor.prototype.setMode = function(mode){
+	this.mode = mode;
+}
+
+Editor.prototype.generateLink = function(){
+	var walls = [];
+	for(var i of this.stage.walls){
+		walls.push(i[0]==i[2] ? 'x,'+i[0]+','+i[1]+','+i[3] : 'y,'+i[1]+','+i[0]+','+i[2]);
+	}
+	var boxes = [];
+	for(var i of this.stage.boxes){
+		boxes.push(i.join(','));
+	}
+	var q = []
+	if(walls.length>0) q.push('w='+walls.join(';'));
+	if(boxes.length>0) q.push('b='+boxes.join(';'));
+	q.push('p='+this.stage.player.join(',')+','+this.stage.playerRotation);	
+	q.push('e='+this.ending.join(','));	
+	return q.join('&');
+}
+
+Editor.prototype.moveForward = function(){
+	switch(this.stage.playerRotation){
+		case 0:
+			this.stage.player[1] = Math.max(this.stage.player[1]-1, 0);
+			break;
+		case 1:
+			this.stage.player[0] = Math.min(this.stage.player[0]+1, 11);
+			break;
+		case 2:
+			this.stage.player[1] = Math.min(this.stage.player[1]+1, 11);
+			break;
+		case 3:
+			this.stage.player[0] = Math.max(this.stage.player[0]-1, 0);
+			break;
+	}
 }
 
 Editor.prototype.mouseMove = function(x, y){
@@ -62,6 +102,8 @@ Editor.prototype.mouseDown = function(remove){
 		this.placeBox(this.selection.x, this.selection.y, remove);
 	}else if(this.mode==3){ // PLACE GODART
 		this.placePlayer(this.selection.x, this.selection.y, remove);
+	}else if(this.mode==4){ // PLACE ENDING
+		this.placeEnd(this.selection.x, this.selection.y);
 	}
 }
 
@@ -74,9 +116,26 @@ Editor.prototype.drawGrid = function(){
 	}
 }
 
+Editor.prototype.onChange = function(fn){
+	this.notification = fn;
+}
+Editor.prototype.notifyChange = function(){
+	if(this.notification) this.notification(this.generateLink());
+}
+
 Editor.prototype.placeWall = function(x1, y1, x2, y2){
 	if(x1==x2 && y1==y2) return;
+	// if(x1==x2){ // VERTICAL WALL
+	// 	for(var i of this.stage.walls){
+
+	// 	}
+	// }else{ // HORIZONTAL WALL
+	// 	for(var i of this.stage.walls){
+			
+	// 	}
+	// }
 	this.stage.walls.push([x1, y1, x2, y2]);
+	this.notifyChange();
 }
 
 Editor.prototype.removeWall = function(x,y){
@@ -91,20 +150,35 @@ Editor.prototype.removeWall = function(x,y){
 		});
 		if(ix!=-1) this.stage.walls.splice(ix, 1);
 	}while(ix!=-1);
+	this.notifyChange();
 }
 
-Editor.prototype.placeBox = function(x,y, remove){
+Editor.prototype.placeBox = function(x,y, remove, amount){
 	var ix = this.stage.boxes.findIndex(a=>(a[0]==x && a[1]==y));
 	if(!remove){
-		if(ix==-1) this.stage.boxes.push([x, y, 1]);
+		if(ix==-1) this.stage.boxes.push([x, y, amount ? amount : 1]);
 		else this.stage.boxes[ix][2] += 1;
 	}else if(ix!=-1){
 		this.stage.boxes.splice(ix, 1);
 	}
+	this.notifyChange();
 }
 
-Editor.prototype.placePlayer = function(x,y){
-	this.stage.player = [x,y];
+Editor.prototype.placePlayer = function(x,y, rot){
+	if(rot){
+		this.stage.playerRotation = Math.min(Math.max(rot, 0), 4);
+	}
+	if(this.stage.player[0]==x && this.stage.player[1]==y){
+		this.stage.playerRotation = this.stage.playerRotation==3 ? 0 : this.stage.playerRotation+1;
+	}else{
+		this.stage.player = [parseInt(x),parseInt(y)];
+	}
+	this.notifyChange();
+}
+
+Editor.prototype.placeEnd = function(x,y){
+	this.ending = [x,y];
+	this.notifyChange();
 }
 
 Editor.prototype.getCoords = function(x, y){
@@ -134,14 +208,22 @@ Editor.prototype.drawStage = function(){
 		this.ctx.fillRect(pX, pY, 20, 20);
 		this.ctx.fillStyle = "#000000";
 		this.ctx.fillText(i[2], pX+10, pY+16); 
-	}	
+	}
+
+	var endX = Math.floor(35+(this.ending[0]*this.gridSize)-(this.gridSize/4));
+	var endY = Math.floor(35+(this.ending[1]*this.gridSize)-(this.gridSize/4));
+	
+	this.ctx.fillStyle = "#3c63b0";
+	this.ctx.fillRect(endX, endY, 20, 20);
+
+
 
 	var playerX = Math.floor(35+(this.stage.player[0]*this.gridSize)-(this.gridSize/4));
 	var playerY = Math.floor(35+(this.stage.player[1]*this.gridSize)-(this.gridSize/4));
 	// this.ctx.save();
 	// this.ctx.translate(this.canvas.width/2,this.canvas.height/2);
 	// this.ctx.rotate(90*Math.PI/180);
-	this.ctx.drawImage(playerImg, playerX, playerY, 20, 20);
+	this.ctx.drawImage(playerImg, this.stage.playerRotation*100, 0, 100, 100, playerX, playerY, 20, 20);
 	// this.ctx.restore();
 
 }
