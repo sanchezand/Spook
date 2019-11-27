@@ -56,18 +56,15 @@
 						<i class="play icon"></i> Ejecutar
 					</div>
 					<br>
-					<div class="ui icon button" onclick="setPlayer()" style="margin-top: 10px; width: 200px;">
+					<a class="ui icon button" id="edit-button" style="margin-top: 10px; width: 200px;" href="" target="_blank">
 						<i class="edit icon"></i> Abrir en editor
-					</div>
+					</a>
 				</div>
 				<div class="ui link form">
 					<div class="field">
 						<label>Play Link</label>
-						<div class="ui input action right">
-							<input type="text" id="link-play">
-							<div class="ui button">
-								Abrir
-							</div>
+						<div class="ui input">
+							<input type="text" id="link-play" readonly>
 						</div>
 					</div>
 				</div>
@@ -134,6 +131,10 @@ end</div>
 		}
 		
 		$('#link-play').val(location.href);
+		$('#link-play').on('click', function(){
+			$(this).select();
+		})
+		$('#edit-button').attr('href', location.href.replace(/player\.html/g, 'editor.html'))
 		
 		var urlParams = new URLSearchParams(window.location.search);
 		var walls = urlParams.get('w');

@@ -50,16 +50,16 @@
 			<div class="ui link form">
 				<div class="field">
 					<label>Editor Link</label>
-					<input type="text" id="link-edit">
+					<input type="text" id="link-edit" readonly>
 				</div>
 
 				<div class="field">
 					<label>Play Link</label>
 					<div class="ui input action right">
-						<input type="text" id="link-play">
-						<div class="ui button">
+						<input type="text" id="link-play" readonly>
+						<a class="ui button" href="" target="_blank" id="button-play">
 							Abrir
-						</div>
+						</a>
 					</div>
 				</div>
 			</div>
@@ -69,13 +69,26 @@
 	<script>
 		var editor = new Editor(document.getElementById("canvas"));
 		editor.start();
-		var link = location.protocol + '//' + location.host + location.pathname
-		var link_play = location.protocol + '//' + location.host + location.pathname
+		var link = location.href
+		$('#link-edit').val(link);
+		$('#link-play').val(link.replace(/editor\.html/g, 'player.html'))
+		$('#button-play').attr('href', link.replace(/editor\.html/g, 'player.html'))
 
 		editor.onChange(function(q){
 			link = location.protocol + '//' + location.host + location.pathname + '?' + q;
 			$('#link-edit').val(link);
+			$('#link-play').val(link.replace(/editor\.html/g, 'player.html'))
+			$('#button-play').attr('href', link.replace(/editor\.html/g, 'player.html'))
 		});
+
+		
+		$('#link-edit').on('click', function(){
+			$(this).select();
+		})
+		
+		$('#link-play').on('click', function(){
+			$(this).select();
+		})
 		
 		var urlParams = new URLSearchParams(window.location.search);
 		var walls = urlParams.get('w');
