@@ -53,6 +53,12 @@
 			<div class="player">
 				<canvas class="sp canvas" width="405" height="405" id="canvas" oncontextmenu="return false;"></canvas>
 				<div class="buttons">
+					<div class="ui form" style="margin: auto; width: 200px; margin-bottom: 10px;">
+						<div class="field">
+							<label>Delay</label>
+							<input type="text" value="500" name="delay" id="delay" style="text-align: center;">
+						</div>
+					</div>
 					<div class="ui green button icon" style="width: 200px;" onclick="runCode()">
 						<i class="play icon"></i> Ejecutar
 					</div>
@@ -75,6 +81,21 @@
 		</div>
 	</body>
 	<script>
+		var delay = 500;
+		var dlyTmout = false;
+		$('#delay').on('keyup', function(){
+			if(isNaN($(this).val())){
+				return;
+			}
+			var time = parseInt($(this).val());
+			if(time<0) time = 0;
+			delay = time;
+			if(dlyTmout) clearTimeout(dlyTmout);
+			dlyTmout = setTimeout(function(){
+				localStorage.setItem('delay', delay);
+			}, 500)
+		})
+
 		var editor = new Editor(document.getElementById("canvas"));
 		editor.start();
 		editor.setMode(5);
@@ -133,7 +154,7 @@
 				resetMap();
 				movesTimeout = setTimeout(function(){
 					doMoves(moves)
-				}, 500);
+				}, delay);
 				showMessage(false, 'Código compilado satisfactoriamente.', 'info');
 			}catch(e){
 				console.log(e)
@@ -163,7 +184,7 @@
 			}
 			movesTimeout = setTimeout(function(){
 				doMoves(moves.slice(1));
-			}, 1000);
+			}, delay);
 		}
 
 		$('#link-play').val(location.href);
@@ -232,5 +253,16 @@
 		}
 		ace_editor.setValue(code);
 		ace_editor.clearSelection();
+
+		var dlySession = localStorage.getItem('delay');
+		if(!dlySession){
+			delay = 500;
+			$('#delay').val(''+delay)
+		}else{
+			delay = parseInt(dlySession)
+			if(delay<0) delay = 0;
+			$('#delay').val(''+delay)
+		}
+
 	</script>
 </html>
